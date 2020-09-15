@@ -1,7 +1,7 @@
 [package]
 name = "bounded-planet"
 version = "0.1.0"
-authors = ["ocornoc <ocornoc@protonmail.com>"]
+authors = ["Cylon dummies"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,4 +9,3 @@ edition = "2018"
 [dependencies]
 bevy = "0.1.3"
 bevy_rapier3d = "0.1.1"
-rtscam = {version = "*", path = "crates/rtscam"}
