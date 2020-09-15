@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use rtscam;
+mod rtscam;
 
 fn main() {
     App::build()
