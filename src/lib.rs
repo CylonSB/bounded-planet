@@ -1,1 +1,1 @@
-pub mod rtscam;
+pub mod camera;
