@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use bevy::prelude::*;
 
 /// The threshold for horizontal cursor-activated [`CameraBP`] movement.
@@ -19,27 +18,48 @@ const CURSOR_EDGE_V_THRESHOLD: f32 = 0.05;
 pub struct CameraBP;
 
 /// The events/actions for a [`CameraBP`] to perform.
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-enum CameraBPAction {
+///
+/// For variants with an `Option<f32>`, the field specifies the weight of the
+/// of the action, or whether it's simply a signal.
+///
+/// As an example, if multiple `MoveLeft(None)`s are pushed to the event queue,
+/// it's treated as if only a single `MoveLeft(None)` was pushed. On the other
+/// hand, when multiple `MoveLeft(Some(_))` are pushed, their weights are
+/// summed to get the final weight, `+ 1.0` if there was a `MoveLeft(None)`.
+#[non_exhaustive]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum CameraBPAction {
     /*PanLeft,
     PanRight,
     PanUp,
     PanDown,*/
     /// Translate the camera left.
-    MoveLeft,
+    MoveLeft(Option<f32>),
     /// Translate the camera right.
-    MoveRight,
+    MoveRight(Option<f32>),
     /// Translate the camera in the direction it faces.
-    MoveForward,
+    MoveForward(Option<f32>),
     /// Translate the camera opposite the direction it faces.
-    MoveBack,
-    //MoveUp,
-    //MoveDown,
+    MoveBack(Option<f32>),
 }
 
 impl CameraBPAction {
-    /// The number of variants of [`CameraBPAction`].
-    const VARIANTS: usize = 4;
+    /// Return whether this is a signalling (ie `None`) action.
+    pub const fn is_signal(&self) -> bool {
+        match self {
+            CameraBPAction::MoveLeft(None)
+            | CameraBPAction::MoveRight(None)
+            | CameraBPAction::MoveForward(None)
+            | CameraBPAction::MoveBack(None) => true,
+            _ => false
+        }
+    }
+
+    /// Returns whether `self` and `other` are both signals for the same
+    /// variant.
+    pub fn both_same_signal(&self, other: &Self) -> bool {
+        self.is_signal() && self == other 
+    }
 }
 
 /// The universal geometry that the camera moves upon.
@@ -123,12 +143,17 @@ impl Default for CameraBPActAmount {
 }
 
 impl CameraBPActAmount {
-    fn get_camspace_vec3_trans(&self, act: CameraBPAction) -> Translation {
+    fn get_camspace_vec3_trans(&self, act: CameraBPAction) -> Option<Translation> {
         match act {
-            CameraBPAction::MoveLeft => Translation::new(self.left, 0.0, 0.0),
-            CameraBPAction::MoveRight => Translation::new(self.right, 0.0, 0.0),
-            CameraBPAction::MoveForward => Translation::new(0.0, 0.0, self.forward),
-            CameraBPAction::MoveBack => Translation::new(0.0, 0.0, self.back)
+            CameraBPAction::MoveLeft(w) =>
+                Some(Translation::new(w.unwrap_or(1.0) * self.left, 0.0, 0.0)),
+            CameraBPAction::MoveRight(w) =>
+                Some(Translation::new(w.unwrap_or(1.0) * self.right, 0.0, 0.0)),
+            CameraBPAction::MoveForward(w) =>
+                Some(Translation::new(0.0, 0.0, w.unwrap_or(1.0) * self.forward)),
+            CameraBPAction::MoveBack(w) =>
+                Some(Translation::new(0.0, 0.0, w.unwrap_or(1.0) * self.back)),
+            _ => None
         }
     }
 }
@@ -221,19 +246,19 @@ fn act_camera_on_window_edge(
         dirty.0 = true;
 
         if mouse_x / window_x <= CURSOR_EDGE_H_THRESHOLD {
-            cams.send(CameraBPAction::MoveLeft);
+            cams.send(CameraBPAction::MoveLeft(None));
         }
 
         if 1.0 - mouse_x / window_x <= CURSOR_EDGE_H_THRESHOLD {
-            cams.send(CameraBPAction::MoveRight);
+            cams.send(CameraBPAction::MoveRight(None));
         }
 
         if mouse_y / window_y <= CURSOR_EDGE_V_THRESHOLD {
-            cams.send(CameraBPAction::MoveBack);
+            cams.send(CameraBPAction::MoveBack(None));
         }
 
         if 1.0 - mouse_y / window_y <= CURSOR_EDGE_V_THRESHOLD {
-            cams.send(CameraBPAction::MoveForward);
+            cams.send(CameraBPAction::MoveForward(None));
         }
     }
 }
@@ -247,7 +272,7 @@ fn use_or_update_action_cache(
 ) {
     if dirty.0 {
         *cache = cams.get_reader().iter(&cams).copied().collect();
-        cache.dedup();
+        cache.dedup_by(| l, r | l.both_same_signal(r));
     } else {
         cams.extend(cache.iter().copied())
     }
@@ -265,18 +290,16 @@ fn perform_camera_actions(
         return;
     }
 
-    let mut actions = HashSet::with_capacity(CameraBPAction::VARIANTS);
-
-    for act in acts.get_reader().iter(&acts) {
-        actions.insert(*act);
-    }
+    let mut actions = acts.get_reader().iter(&acts).copied().collect::<Vec<_>>();
+    actions.dedup_by(| l, r | l.both_same_signal(r));
 
     for (mut cam_t, mut cam_r) in cams.iter().into_iter() {
         for act in &actions {
-            let (t, r) = res.0.trans(*cam_t, *cam_r, weights.get_camspace_vec3_trans(*act));
-
-            *cam_t = t;
-            *cam_r = r;
+            if let Some(t) = weights.get_camspace_vec3_trans(*act) {
+                let (t, r) = res.0.trans(*cam_t, *cam_r, t);
+                *cam_t = t;
+                *cam_r = r;
+            }
         }
     }
 }
