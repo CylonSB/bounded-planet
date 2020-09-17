@@ -88,7 +88,7 @@ fn setup(
             translation: Translation::new(0.0, 7.0, -5.0),
             rotation: Rotation::from_rotation_xyz(-0.75, 2.7, 0.0),
             ..Default::default()
-        }).with(CameraBP);
+        }).with(CameraBPConfig::default());
 }
 
 /// Pushes camera actions based upon mouse movements near the window edge.
