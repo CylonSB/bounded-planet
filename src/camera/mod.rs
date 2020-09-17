@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use smallvec::SmallVec;
 
 /// A component to mark [`Camera3dComponents`] as cameras to be affected by
 /// this plugin.
@@ -46,6 +47,29 @@ impl CameraBPAction {
     /// variant.
     pub fn both_same_signal(&self, other: &Self) -> bool {
         self.is_signal() && self == other 
+    }
+
+    /// Return a [`Vec<CameraBPAction>`] such that every signal in the
+    /// collection is deduplicated.
+    ///
+    /// All signals are at the end of the returned `Vec`, in their order of
+    /// initial appearance. All non-signals have their order retained.
+    pub fn dedup_signals<I: IntoIterator<Item=Self>>(iter: I) -> Vec<Self> {
+        // a little bit future-proofed
+        const SIGNAL_TYPES: usize = 10;
+        let mut signals = SmallVec::<[CameraBPAction; SIGNAL_TYPES]>::new();
+        
+        let (sigs, mut acts): (Vec<_>, Vec<_>) = iter.into_iter()
+            .partition(| act | act.is_signal());
+        
+        for sig in sigs.into_iter() {
+            if !signals.contains(&sig) {
+                signals.push(sig)
+            }
+        }
+
+        acts.extend_from_slice(signals.as_slice());
+        acts
     }
 }
 
@@ -212,8 +236,7 @@ fn perform_camera_actions(
         return;
     }
 
-    let mut actions = acts.get_reader().iter(&acts).copied().collect::<Vec<_>>();
-    actions.dedup_by(| l, r | l.both_same_signal(r));
+    let actions = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
 
     for (mut cam_t, mut cam_r) in cams.iter().into_iter() {
         for act in &actions {

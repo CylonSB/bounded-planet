@@ -131,8 +131,7 @@ fn use_or_update_action_cache(
     dirty: Res<IsActionCacheDirty>
 ) {
     if dirty.0 {
-        *cache = cams.get_reader().iter(&cams).copied().collect();
-        cache.dedup_by(| l, r | l.both_same_signal(r));
+        *cache = CameraBPAction::dedup_signals(cams.get_reader().iter(&cams).copied());
     } else {
         cams.extend(cache.iter().copied())
     }
