@@ -1,20 +1,20 @@
 use bevy::{prelude::*, input::mouse::{MouseWheel, MouseScrollUnit}};
 use bounded_planet::camera::*;
 
-/// The threshold for horizontal cursor-activated [`CameraBP`] movement.
+/// The threshold for horizontal cursor-activated [`CameraBPConfig`] movement.
 ///
 /// Is a proportion of the window size. So, if this is `0.05`, then the cursor
 /// must be within 5% of the window size to either the left or right edge to
 /// trigger this threshold.
 const CURSOR_EDGE_H_THRESHOLD: f32 = 0.05;
-/// The threshold for vertical cursor-activated [`CameraBP`] movement.
+/// The threshold for vertical cursor-activated [`CameraBPConfig`] movement.
 ///
 /// Is a proportion of the window size. So, if this is `0.05`, then the cursor
 /// must be within 5% of the window size to either the top or bottom edge to
 /// trigger this threshold.
 const CURSOR_EDGE_V_THRESHOLD: f32 = 0.05;
 
-/// The stage at which the [`CameraBP`] cache is either updated or used to fill
+/// The stage at which the [`CameraBPConfig`] cache is either updated or used to fill
 /// in the action cache now.
 const CAM_CACHE_UPDATE: &'static str = "push_cam_update";
 
