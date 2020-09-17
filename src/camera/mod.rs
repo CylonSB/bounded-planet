@@ -1,9 +1,79 @@
 use bevy::prelude::*;
 use smallvec::SmallVec;
 
+const DEFAULT_TRANS_SCALE: f32 = 0.2;
+const DEFAULT_ZOOM_SCALE: f32 = 0.2;
+
+// constants for setting default act amounts
+const DEFAULT_MOVE_LEFT_AMOUNT: f32 = -0.1;
+const DEFAULT_MOVE_RIGHT_AMOUNT: f32 = -DEFAULT_MOVE_LEFT_AMOUNT;
+const DEFAULT_MOVE_FORWARD_AMOUNT: f32 = -0.1;
+const DEFAULT_MOVE_BACK_AMOUNT: f32 = -DEFAULT_MOVE_FORWARD_AMOUNT;
+const DEFAULT_ZOOM_IN_AMOUNT: f32 = -0.1;
+const DEFAULT_ZOOM_OUT_AMOUNT: f32 = -DEFAULT_ZOOM_IN_AMOUNT;
+
 /// A component to mark [`Camera3dComponents`] as cameras to be affected by
 /// this plugin.
-pub struct CameraBP;
+#[derive(Debug, Copy, Clone)]
+pub struct CameraBPConfig {
+    /// How much the distance between `geo` and the camera affects
+    /// translational camera movements.
+    pub trans_scale: f32,
+    /// How much the distance between `geo` and the camera affects zooming
+    /// camera movements.
+    pub zoom_scale: f32,
+    /// The scalar weight of [`CameraBPAction::MoveLeft`].
+    pub left_weight: f32,
+    /// The scalar weight of [`CameraBPAction::MoveRight`].
+    pub right_weight: f32,
+    /// The scalar weight of [`CameraBPAction::MoveForward`].
+    pub forward_weight: f32,
+    /// The scalar weight of [`CameraBPAction::MoveBack`].
+    pub back_weight: f32,
+    /// The scalar weight of [`CameraBPAction::ZoomIn`].
+    pub zoomin_weight: f32,
+    /// The scalar weight of [`CameraBPAction::Zoomout`].
+    pub zoomout_weight: f32,
+}
+
+impl Default for CameraBPConfig {
+    fn default() -> Self {
+        Self {
+            trans_scale: DEFAULT_TRANS_SCALE,
+            zoom_scale: DEFAULT_ZOOM_SCALE,
+            left_weight: DEFAULT_MOVE_LEFT_AMOUNT,
+            right_weight: DEFAULT_MOVE_RIGHT_AMOUNT,
+            forward_weight: DEFAULT_MOVE_FORWARD_AMOUNT,
+            back_weight: DEFAULT_MOVE_BACK_AMOUNT,
+            zoomin_weight: DEFAULT_ZOOM_IN_AMOUNT,
+            zoomout_weight: DEFAULT_ZOOM_OUT_AMOUNT,
+        }
+    }
+}
+
+impl CameraBPConfig {
+    fn get_camspace_vec3_trans(&self, act: CameraBPAction) -> Option<Translation> {
+        match act {
+            CameraBPAction::MoveLeft(w) =>
+                Some(Translation::new(w.unwrap_or(1.0) * self.left_weight, 0.0, 0.0)),
+            CameraBPAction::MoveRight(w) =>
+                Some(Translation::new(w.unwrap_or(1.0) * self.right_weight, 0.0, 0.0)),
+            CameraBPAction::MoveForward(w) =>
+                Some(Translation::new(0.0, 0.0, w.unwrap_or(1.0) * self.forward_weight)),
+            CameraBPAction::MoveBack(w) =>
+                Some(Translation::new(0.0, 0.0, w.unwrap_or(1.0) * self.back_weight)),
+            _ => None
+        }
+    }
+
+    fn get_camspace_vec3_zoom(&self, act: CameraBPAction) -> Option<f32> {
+        match act {
+            CameraBPAction::ZoomIn(w) => Some(w.unwrap_or(1.0) * self.zoomin_weight),
+            CameraBPAction::ZoomOut(w) => Some(w.unwrap_or(1.0) * self.zoomout_weight),
+            _ => None
+        }
+    }
+}
 
 /// The events/actions for a [`CameraBP`] to perform.
 ///
@@ -117,16 +187,26 @@ impl UniversalGeometry {
     /// Get the new position and rotation resulting from the original position
     /// `p`, original rotation `r`, and movement `s` about `self` (relative to
     /// `r`).
-    fn trans(&self, p: Translation, r: Rotation, s: Translation) -> (Translation, Rotation) {
-        fn plane(_o: Vec3, n: Vec3, mut p: Vec3, r: Quat, s: Vec3) -> (Vec3, Quat) {
-            let mut s2 = r.mul_vec3(s);
-            s2 -= n * s2.dot(n);
-            p += s2.normalize() * s.length();
+    fn trans(
+        &self,
+        p: Translation,
+        r: Rotation,
+        s: Translation,
+        scale: f32
+    ) -> (Translation, Rotation) {
+        fn plane(_o: Vec3, n: Vec3, mut p: Vec3, r: Quat, s: Vec3, scale: f32) -> (Vec3, Quat) {
+            let mut delta = r.mul_vec3(s);
+            delta -= n * delta.dot(n);
+            delta = delta.normalize() * s.length();  // unscaled delta
+            delta *= scale * p.dot(n).abs();  // scale delta by dist
+            p += delta;
+
             (p, r)
         }
 
         let (p, r) = match self {
-            UniversalGeometry::Plane { origin, normal } => plane(origin.0, *normal, p.0, r.0, s.0)
+            UniversalGeometry::Plane { origin, normal } =>
+                plane(origin.0, *normal, p.0, r.0, s.0, scale)
         };
 
         (Translation(p), Rotation(r))
@@ -134,73 +214,20 @@ impl UniversalGeometry {
 
     /// Get the new position and rotation from scrolling resulting from the
     /// original position `o`, original rotation `r`, and scroll weight `s`.
-    fn zoom(&self, p: Translation, r: Rotation, s: f32) -> (Translation, Rotation) {
-        fn plane(_o: Vec3, _n: Vec3, mut p: Vec3, r: Quat, s: f32) -> (Vec3, Quat) {
-            p += (-r).mul_vec3(Vec3::new(0.0, 0.0, s));
+    fn zoom(&self, p: Translation, r: Rotation, s: f32, scale: f32) -> (Translation, Rotation) {
+        fn plane(_o: Vec3, n: Vec3, mut p: Vec3, r: Quat, s: f32, scale: f32) -> (Vec3, Quat) {
+            let mut delta = (-r).mul_vec3(Vec3::new(0.0, 0.0, s));  // unscaled delta
+            delta *= scale * p.dot(n).abs();  // scale delta by dist
+            p += delta;
             (p, r)
         }
 
         let (p, r) = match self {
-            UniversalGeometry::Plane { origin, normal } => plane(origin.0, *normal, p.0, r.0, s)
+            UniversalGeometry::Plane { origin, normal } =>
+                plane(origin.0, *normal, p.0, r.0, s, scale)
         };
 
         (Translation(p), Rotation(r))
-    }
-}
-
-// constants for setting default act amounts
-const DEFAULT_MOVE_LEFT_AMOUNT: f32 = -0.1;
-const DEFAULT_MOVE_RIGHT_AMOUNT: f32 = -DEFAULT_MOVE_LEFT_AMOUNT;
-const DEFAULT_MOVE_FORWARD_AMOUNT: f32 = -0.1;
-const DEFAULT_MOVE_BACK_AMOUNT: f32 = -DEFAULT_MOVE_FORWARD_AMOUNT;
-const DEFAULT_ZOOM_IN_AMOUNT: f32 = -0.1;
-const DEFAULT_ZOOM_OUT_AMOUNT: f32 = -DEFAULT_ZOOM_IN_AMOUNT;
-
-/// The associated scalar "strengths"/weights of camera actions.
-#[derive(Copy, Clone)]
-pub struct CameraBPActAmount {
-    pub left: f32,
-    pub right: f32,
-    pub forward: f32,
-    pub back: f32,
-    pub zoomin: f32,
-    pub zoomout: f32,
-}
-
-impl Default for CameraBPActAmount {
-    fn default() -> Self {
-        CameraBPActAmount {
-            left: DEFAULT_MOVE_LEFT_AMOUNT,
-            right: DEFAULT_MOVE_RIGHT_AMOUNT,
-            forward: DEFAULT_MOVE_FORWARD_AMOUNT,
-            back: DEFAULT_MOVE_BACK_AMOUNT,
-            zoomin: DEFAULT_ZOOM_IN_AMOUNT,
-            zoomout: DEFAULT_ZOOM_OUT_AMOUNT,
-        }
-    }
-}
-
-impl CameraBPActAmount {
-    fn get_camspace_vec3_trans(&self, act: CameraBPAction) -> Option<Translation> {
-        match act {
-            CameraBPAction::MoveLeft(w) =>
-                Some(Translation::new(w.unwrap_or(1.0) * self.left, 0.0, 0.0)),
-            CameraBPAction::MoveRight(w) =>
-                Some(Translation::new(w.unwrap_or(1.0) * self.right, 0.0, 0.0)),
-            CameraBPAction::MoveForward(w) =>
-                Some(Translation::new(0.0, 0.0, w.unwrap_or(1.0) * self.forward)),
-            CameraBPAction::MoveBack(w) =>
-                Some(Translation::new(0.0, 0.0, w.unwrap_or(1.0) * self.back)),
-            _ => None
-        }
-    }
-
-    fn get_camspace_vec3_zoom(&self, act: CameraBPAction) -> Option<f32> {
-        match act {
-            CameraBPAction::ZoomIn(w) => Some(w.unwrap_or(1.0) * self.zoomin),
-            CameraBPAction::ZoomOut(w) => Some(w.unwrap_or(1.0) * self.zoomout),
-            _ => None
-        }
     }
 }
 
@@ -243,16 +270,13 @@ impl From<UniversalGeometry> for InternalUG {
 pub struct CameraBPPlugin {
     /// The geometry that the camera follows.
     pub geo: UniversalGeometry,
-    /// The "strength" (such as pan speed) of camera actions.
-    pub cam_act: CameraBPActAmount,
     /// Whether the camera is locked (ie, can't be moved by player actions).
-    pub locked: bool
+    pub locked: bool,
 }
 
 impl Plugin for CameraBPPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource::<InternalUG>(self.geo.into())
-            .add_resource(self.cam_act)
             .add_resource::<CameraBPLocked>(self.locked.into())
             .add_event::<CameraBPAction>()
             .add_system(perform_camera_actions.system());
@@ -263,9 +287,8 @@ impl Plugin for CameraBPPlugin {
 fn perform_camera_actions(
     acts: Res<Events<CameraBPAction>>,
     res: Res<InternalUG>,
-    weights: Res<CameraBPActAmount>,
     locked: Res<CameraBPLocked>,
-    mut cams: Query<With<CameraBP, (&mut Translation, &mut Rotation)>>
+    mut cams: Query<(&CameraBPConfig, &mut Translation, &mut Rotation)>
 ) {
     if locked.0 {
         return;
@@ -273,14 +296,14 @@ fn perform_camera_actions(
 
     let actions = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
 
-    for (mut cam_t, mut cam_r) in cams.iter().into_iter() {
+    for (bp, mut cam_t, mut cam_r) in cams.iter().into_iter() {
         for act in &actions {
-            if let Some(t) = weights.get_camspace_vec3_trans(*act) {
-                let (t, r) = res.0.trans(*cam_t, *cam_r, t);
+            if let Some(t) = bp.get_camspace_vec3_trans(*act) {
+                let (t, r) = res.0.trans(*cam_t, *cam_r, t, bp.trans_scale);
                 *cam_t = t;
                 *cam_r = r;
-            } else if let Some(w) = weights.get_camspace_vec3_zoom(*act) {
-                let (t, r) = res.0.zoom(*cam_t, *cam_r, w);
+            } else if let Some(w) = bp.get_camspace_vec3_zoom(*act) {
+                let (t, r) = res.0.zoom(*cam_t, *cam_r, w, bp.zoom_scale);
                 *cam_t = t;
                 *cam_r = r;
             }
