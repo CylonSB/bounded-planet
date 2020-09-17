@@ -1,19 +1,84 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    render::{
+        mesh::shape,
+        pipeline::{DynamicBinding, PipelineDescriptor, PipelineSpecialization, RenderPipeline},
+        render_graph::{base, AssetRenderResourcesNode, RenderGraph},
+        renderer::RenderResources,
+        shader::{ShaderStage, ShaderStages},
+    },
+};
+
+
 
 fn main() {
     App::build()
         .add_resource(Msaa { samples: 4 })
         .add_default_plugins()
+        .add_asset::<LandMaterial>()
         .add_startup_system(setup.system())
         .run();
 }
 
-/// set up a simple 3D scene
+#[derive(RenderResources, Default)]
+struct LandMaterial {
+    pub color: Color,
+}
+
+const VERTEXSHADER: &str = include_str!("../media/shaders/land.vert");
+const FRAGSHADER: &str = include_str!("../media/shaders/land.frag");
+
+/// set up a simple 3D scene with landscape?
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut pipelines: ResMut<Assets<PipelineDescriptor>>,
+    mut shaders: ResMut<Assets<Shader>>,
+    mut shader_materials: ResMut<Assets<LandMaterial>>,
+    mut render_graph: ResMut<RenderGraph>, 
 ) {
+    let land_pipeline = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
+        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex,VERTEXSHADER)),
+        fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, FRAGSHADER))),
+    }));
+
+    render_graph.add_system_node("land_material", AssetRenderResourcesNode::<LandMaterial>::new(true),);
+
+    render_graph
+        .add_node_edge("land_material", base::node::MAIN_PASS)
+        .unwrap();
+
+    let land_material = shader_materials.add(LandMaterial {
+        color: Color::rgb(0.5, 0.0, 0.0),
+    });
+
+    for x in -5..5 {
+        for y in -5..5 {
+            let scale = 15.;
+            let land_mesh = MeshComponents{
+                mesh: meshes.add(Mesh::from(shape::Plane { size: 1.0 })),
+                render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::specialized(
+                    land_pipeline,
+                    PipelineSpecialization {
+                        dynamic_bindings: vec![
+                            DynamicBinding {
+                                bind_group: 1,
+                                binding: 0,
+                            },
+                        ],
+                        ..Default::default()           
+                    },
+                )]),
+                translation: Translation::new(x as f32 * scale, 0.0, y as f32 * scale),
+                scale: Scale(scale),
+                ..Default::default()
+            };
+
+            commands.spawn(land_mesh).with(land_material);
+        }
+    }
+    
     // add entities to the world
     commands
         // plane
@@ -54,3 +119,9 @@ fn setup(
             ..Default::default()
         });
 }
+
+
+
+
+
+
