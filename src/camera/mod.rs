@@ -34,6 +34,8 @@ pub struct CameraBPConfig {
     pub zoomin_weight: f32,
     /// The scalar weight of [`CameraBPAction::Zoomout`].
     pub zoomout_weight: f32,
+    /// Whether the camera is locked (unaffected by [`CameraBPAction`]s).
+    pub locked: bool,
 }
 
 impl Default for CameraBPConfig {
@@ -47,6 +49,7 @@ impl Default for CameraBPConfig {
             back_weight: DEFAULT_MOVE_BACK_AMOUNT,
             zoomin_weight: DEFAULT_ZOOM_IN_AMOUNT,
             zoomout_weight: DEFAULT_ZOOM_OUT_AMOUNT,
+            locked: false,
         }
     }
 }
@@ -231,28 +234,6 @@ impl UniversalGeometry {
     }
 }
 
-/// Whether the camera is locked (ie, can't be moved by player actions).
-#[derive(Copy, Clone)]
-pub struct CameraBPLocked(pub bool);
-
-impl Default for CameraBPLocked {
-    fn default() -> Self {
-        CameraBPLocked(false)
-    }
-}
-
-impl From<bool> for CameraBPLocked {
-    fn from(l: bool) -> Self {
-        CameraBPLocked(l)
-    }
-}
-
-impl From<CameraBPLocked> for bool {
-    fn from(l: CameraBPLocked) -> Self {
-        l.0
-    }
-}
-
 /// A private newtype of Universal Geometry, that satisfies some invariants:
 /// 1) `self.0` is normalized.
 /// 2) If `self.0` is a plane, then its normal is a unit vector.
@@ -277,7 +258,6 @@ pub struct CameraBPPlugin {
 impl Plugin for CameraBPPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource::<InternalUG>(self.geo.into())
-            .add_resource::<CameraBPLocked>(self.locked.into())
             .add_event::<CameraBPAction>()
             .add_system(perform_camera_actions.system());
     }
@@ -287,16 +267,15 @@ impl Plugin for CameraBPPlugin {
 fn perform_camera_actions(
     acts: Res<Events<CameraBPAction>>,
     res: Res<InternalUG>,
-    locked: Res<CameraBPLocked>,
     mut cams: Query<(&CameraBPConfig, &mut Translation, &mut Rotation)>
 ) {
-    if locked.0 {
-        return;
-    }
-
     let actions = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
 
     for (bp, mut cam_t, mut cam_r) in cams.iter().into_iter() {
+        if bp.locked {
+            continue;
+        }
+        
         for act in &actions {
             if let Some(t) = bp.get_camspace_vec3_trans(*act) {
                 let (t, r) = res.0.trans(*cam_t, *cam_r, t, bp.trans_scale);
