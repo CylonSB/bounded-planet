@@ -32,7 +32,7 @@ pub enum CameraBPAction {
 }
 
 impl CameraBPAction {
-    /// Return whether this is a signalling (ie `None`) action.
+    /// Return whether this is a signaling (ie `None`) action.
     pub const fn is_signal(&self) -> bool {
         match self {
             CameraBPAction::MoveLeft(None)
