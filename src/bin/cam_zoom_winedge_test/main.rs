@@ -95,7 +95,7 @@ fn act_camera_on_window_edge(
     wins: Res<Windows>,
     mut dirty: ResMut<IsActionCacheDirty>,
     pos: Res<Events<CursorMoved>>,
-    mut cams: ResMut<Events<CameraBPAction>>
+    mut acts: ResMut<Events<CameraBPAction>>
 ) {
     dirty.0 = false;
 
@@ -106,19 +106,19 @@ fn act_camera_on_window_edge(
         dirty.0 = true;
 
         if mouse_x / window_x <= CURSOR_EDGE_H_THRESHOLD {
-            cams.send(CameraBPAction::MoveLeft(None));
+            acts.send(CameraBPAction::MoveLeft(None));
         }
 
         if 1.0 - mouse_x / window_x <= CURSOR_EDGE_H_THRESHOLD {
-            cams.send(CameraBPAction::MoveRight(None));
+            acts.send(CameraBPAction::MoveRight(None));
         }
 
         if mouse_y / window_y <= CURSOR_EDGE_V_THRESHOLD {
-            cams.send(CameraBPAction::MoveBack(None));
+            acts.send(CameraBPAction::MoveBack(None));
         }
 
         if 1.0 - mouse_y / window_y <= CURSOR_EDGE_V_THRESHOLD {
-            cams.send(CameraBPAction::MoveForward(None));
+            acts.send(CameraBPAction::MoveForward(None));
         }
     }
 }
@@ -127,12 +127,12 @@ fn act_camera_on_window_edge(
 /// queue for [`CameraBPAction`] with the locally cached copy.
 fn use_or_update_action_cache(
     mut cache: Local<Vec<CameraBPAction>>,
-    mut cams: ResMut<Events<CameraBPAction>>,
+    mut acts: ResMut<Events<CameraBPAction>>,
     dirty: Res<IsActionCacheDirty>
 ) {
     if dirty.0 {
-        *cache = CameraBPAction::dedup_signals(cams.get_reader().iter(&cams).copied());
+        *cache = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
     } else {
-        cams.extend(cache.iter().copied())
+        acts.extend(cache.iter().copied())
     }
 }
