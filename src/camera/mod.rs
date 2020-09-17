@@ -29,6 +29,10 @@ pub enum CameraBPAction {
     MoveForward(Option<f32>),
     /// Translate the camera opposite the direction it faces.
     MoveBack(Option<f32>),
+    /// Zoom in the camera.
+    ZoomIn(Option<f32>),
+    /// Zoom out the camera.
+    ZoomOut(Option<f32>),
 }
 
 impl CameraBPAction {
@@ -38,7 +42,9 @@ impl CameraBPAction {
             CameraBPAction::MoveLeft(None)
             | CameraBPAction::MoveRight(None)
             | CameraBPAction::MoveForward(None)
-            | CameraBPAction::MoveBack(None) => true,
+            | CameraBPAction::MoveBack(None)
+            | CameraBPAction::ZoomIn(None)
+            | CameraBPAction::ZoomOut(None) => true,
             _ => false
         }
     }
@@ -125,6 +131,21 @@ impl UniversalGeometry {
 
         (Translation(p), Rotation(r))
     }
+
+    /// Get the new position and rotation from scrolling resulting from the
+    /// original position `o`, original rotation `r`, and scroll weight `s`.
+    fn zoom(&self, p: Translation, r: Rotation, s: f32) -> (Translation, Rotation) {
+        fn plane(_o: Vec3, _n: Vec3, mut p: Vec3, r: Quat, s: f32) -> (Vec3, Quat) {
+            p += (-r).mul_vec3(Vec3::new(0.0, 0.0, s));
+            (p, r)
+        }
+
+        let (p, r) = match self {
+            UniversalGeometry::Plane { origin, normal } => plane(origin.0, *normal, p.0, r.0, s)
+        };
+
+        (Translation(p), Rotation(r))
+    }
 }
 
 // constants for setting default act amounts
@@ -132,6 +153,8 @@ const DEFAULT_MOVE_LEFT_AMOUNT: f32 = -0.1;
 const DEFAULT_MOVE_RIGHT_AMOUNT: f32 = -DEFAULT_MOVE_LEFT_AMOUNT;
 const DEFAULT_MOVE_FORWARD_AMOUNT: f32 = -0.1;
 const DEFAULT_MOVE_BACK_AMOUNT: f32 = -DEFAULT_MOVE_FORWARD_AMOUNT;
+const DEFAULT_ZOOM_IN_AMOUNT: f32 = -0.1;
+const DEFAULT_ZOOM_OUT_AMOUNT: f32 = -DEFAULT_ZOOM_IN_AMOUNT;
 
 /// The associated scalar "strengths"/weights of camera actions.
 #[derive(Copy, Clone)]
@@ -139,7 +162,9 @@ pub struct CameraBPActAmount {
     pub left: f32,
     pub right: f32,
     pub forward: f32,
-    pub back: f32
+    pub back: f32,
+    pub zoomin: f32,
+    pub zoomout: f32,
 }
 
 impl Default for CameraBPActAmount {
@@ -148,7 +173,9 @@ impl Default for CameraBPActAmount {
             left: DEFAULT_MOVE_LEFT_AMOUNT,
             right: DEFAULT_MOVE_RIGHT_AMOUNT,
             forward: DEFAULT_MOVE_FORWARD_AMOUNT,
-            back: DEFAULT_MOVE_BACK_AMOUNT
+            back: DEFAULT_MOVE_BACK_AMOUNT,
+            zoomin: DEFAULT_ZOOM_IN_AMOUNT,
+            zoomout: DEFAULT_ZOOM_OUT_AMOUNT,
         }
     }
 }
@@ -164,6 +191,14 @@ impl CameraBPActAmount {
                 Some(Translation::new(0.0, 0.0, w.unwrap_or(1.0) * self.forward)),
             CameraBPAction::MoveBack(w) =>
                 Some(Translation::new(0.0, 0.0, w.unwrap_or(1.0) * self.back)),
+            _ => None
+        }
+    }
+
+    fn get_camspace_vec3_zoom(&self, act: CameraBPAction) -> Option<f32> {
+        match act {
+            CameraBPAction::ZoomIn(w) => Some(w.unwrap_or(1.0) * self.zoomin),
+            CameraBPAction::ZoomOut(w) => Some(w.unwrap_or(1.0) * self.zoomout),
             _ => None
         }
     }
@@ -242,6 +277,10 @@ fn perform_camera_actions(
         for act in &actions {
             if let Some(t) = weights.get_camspace_vec3_trans(*act) {
                 let (t, r) = res.0.trans(*cam_t, *cam_r, t);
+                *cam_t = t;
+                *cam_r = r;
+            } else if let Some(w) = weights.get_camspace_vec3_zoom(*act) {
+                let (t, r) = res.0.zoom(*cam_t, *cam_r, w);
                 *cam_t = t;
                 *cam_r = r;
             }

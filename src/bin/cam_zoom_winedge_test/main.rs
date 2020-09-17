@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, input::mouse::{MouseWheel, MouseScrollUnit}};
 use bounded_planet::camera::*;
 
 /// The threshold for horizontal cursor-activated [`CameraBP`] movement.
@@ -41,6 +41,7 @@ fn main() {
         })
         .add_startup_system(setup.system())
         .add_system_to_stage(stage::EVENT_UPDATE, act_camera_on_window_edge.system())
+        .add_system_to_stage(stage::EVENT_UPDATE, act_on_scroll_wheel.system())
         .add_stage_after(stage::EVENT_UPDATE, CAM_CACHE_UPDATE)
         .add_system_to_stage(CAM_CACHE_UPDATE, use_or_update_action_cache.system())
         .run();
@@ -123,6 +124,36 @@ fn act_camera_on_window_edge(
     }
 }
 
+/// Pushes camera actions based upon scroll wheel movement.
+fn act_on_scroll_wheel(
+    mouse_wheel: Res<Events<MouseWheel>>,
+    mut acts: ResMut<Events<CameraBPAction>>
+) {
+    for mw in mouse_wheel.get_reader().iter(&mouse_wheel) {
+        /// If scrolling units are reported in lines rather than pixels,
+        /// multiply the returned horizontal scrolling amount by this.
+        const LINE_SIZE: f32 = 14.0;
+        let w = mw.y.abs() * if let MouseScrollUnit::Line = mw.unit { LINE_SIZE } else { 1.0 };
+
+        if mw.y > 0.0 {
+            acts.send(CameraBPAction::ZoomIn(Some(w)))
+        } else if mw.y < 0.0 {
+            acts.send(CameraBPAction::ZoomOut(Some(w)))
+        }
+    }
+}
+
+// Return whether this action was created from the window edge.
+fn is_winedge_act(act: &CameraBPAction) -> bool {
+    match act {
+        CameraBPAction::MoveLeft(_)
+        | CameraBPAction::MoveRight(_)
+        | CameraBPAction::MoveForward(_)
+        | CameraBPAction::MoveBack(_) => true,
+        _ => false
+    }
+}
+
 /// Depending on `dirty`, either update the local `cache` or fill the event
 /// queue for [`CameraBPAction`] with the locally cached copy.
 fn use_or_update_action_cache(
@@ -131,7 +162,13 @@ fn use_or_update_action_cache(
     dirty: Res<IsActionCacheDirty>
 ) {
     if dirty.0 {
-        *cache = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
+        *cache = CameraBPAction::dedup_signals(
+            acts
+                .get_reader()
+                .iter(&acts)
+                .copied()
+                .filter(is_winedge_act)
+        );
     } else {
         acts.extend(cache.iter().copied())
     }
