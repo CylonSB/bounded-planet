@@ -31,6 +31,7 @@ const FRAGSHADER: &str = include_str!("../media/shaders/land.frag");
 /// set up a simple 3D scene with landscape?
 fn setup(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut pipelines: ResMut<Assets<PipelineDescriptor>>,
@@ -49,19 +50,21 @@ fn setup(
         .add_node_edge("land_material", base::node::MAIN_PASS)
         .unwrap();
 
-    let land_material = shader_materials.add(LandMaterial {
-        color: Color::rgb(0.5, 0.0, 0.0),
+    let _land_material = shader_materials.add(LandMaterial {
+        color: Color::rgb(0.0, 0.8, 0.0),
     });
 
-    for x in -5..5 {
-        for y in -5..5 {
-            let scale = 15.;
-            let land_mesh = MeshComponents{
-                mesh: meshes.add(Mesh::from(shape::Plane { size: 1.0 })),
+
+    for x in -15..15 {
+        for y in -15..15 {
+            let scale = 5.0;
+            let land_mesh = PbrComponents{
+                mesh: asset_server.load("src/media/land.gltf").unwrap(),
                 render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::specialized(
                     land_pipeline,
                     PipelineSpecialization {
                         dynamic_bindings: vec![
+                            // Transform
                             DynamicBinding {
                                 bind_group: 1,
                                 binding: 0,
@@ -70,38 +73,26 @@ fn setup(
                         ..Default::default()           
                     },
                 )]),
-                translation: Translation::new(x as f32 * scale, 0.0, y as f32 * scale),
+                translation: Translation::new(x as f32, 0.0, y as f32),
                 scale: Scale(scale),
+                material: materials.add(Color::rgb(0.5, 0.4, 0.3).into()),
                 ..Default::default()
             };
 
-            commands.spawn(land_mesh).with(land_material);
+            commands.spawn(land_mesh).with(_land_material);  
         }
     }
-    
+
     // add entities to the world
     commands
-        // plane
-        .spawn(PbrComponents {
-            mesh: meshes.add(Mesh::from(shape::Plane { size: 10.0 })),
-            material: materials.add(Color::rgb(0.1, 0.2, 0.1).into()),
-            ..Default::default()
-        })
-        // cube
-        .spawn(PbrComponents {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: materials.add(Color::rgb(0.5, 0.4, 0.3).into()),
-            translation: Translation::new(0.0, 1.0, 0.0),
-            ..Default::default()
-        })
         // sphere
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Icosphere {
                 subdivisions: 4,
-                radius: 0.5,
+                radius: 2.0,
             })),
             material: materials.add(Color::rgb(0.1, 0.4, 0.8).into()),
-            translation: Translation::new(1.5, 1.5, 1.5),
+            translation: Translation::new(4.0, 1.5, 4.0),
             ..Default::default()
         })
         // light
@@ -112,7 +103,7 @@ fn setup(
         // camera
         .spawn(Camera3dComponents {
             transform: Transform::new_sync_disabled(Mat4::face_toward(
-                Vec3::new(-3.0, 5.0, 8.0),
+                Vec3::new(-8.0, 20.0, 15.0),
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(0.0, 1.0, 0.0),
             )),
