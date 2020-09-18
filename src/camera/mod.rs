@@ -222,6 +222,7 @@ impl UniversalGeometry {
             let mut delta = (-r).mul_vec3(Vec3::new(0.0, 0.0, s));  // unscaled delta
             delta *= scale * p.dot(n).abs();  // scale delta by dist
             p += delta;
+            
             (p, r)
         }
 
