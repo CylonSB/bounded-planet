@@ -200,9 +200,13 @@ impl UniversalGeometry {
         fn plane(_o: Vec3, n: Vec3, mut p: Vec3, r: Quat, s: Vec3, scale: f32) -> (Vec3, Quat) {
             let mut delta = r.mul_vec3(s);
             delta -= n * delta.dot(n);
-            delta = delta.normalize() * s.length();  // unscaled delta
-            delta *= scale * p.dot(n).abs();  // scale delta by dist
-            p += delta;
+
+            // when delta is zero, delta.normalize() is (NaN, NaN, NaN), which causes camera to die
+            if delta != Vec3::new(0.0, 0.0, 0.0) {
+                delta = delta.normalize() * s.length();  // unscaled delta
+                delta *= scale * p.dot(n).abs();  // scale delta by dist
+                p += delta;
+            }
 
             (p, r)
         }
