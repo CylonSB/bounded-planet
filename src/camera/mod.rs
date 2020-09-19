@@ -190,13 +190,7 @@ impl UniversalGeometry {
     /// Get the new position and rotation resulting from the original position
     /// `p`, original rotation `r`, and movement `s` about `self` (relative to
     /// `r`).
-    fn trans(
-        &self,
-        p: Translation,
-        r: Rotation,
-        s: Translation,
-        scale: f32
-    ) -> (Translation, Rotation) {
+    fn trans(&self, p: Translation, r: Rotation, s: Translation, scale: f32) -> (Vec3, Quat) {
         fn plane(_o: Vec3, n: Vec3, mut p: Vec3, r: Quat, s: Vec3, scale: f32) -> (Vec3, Quat) {
             let mut delta = r.mul_vec3(s);
             delta -= n * delta.dot(n);
@@ -211,17 +205,15 @@ impl UniversalGeometry {
             (p, r)
         }
 
-        let (p, r) = match self {
+        match self {
             UniversalGeometry::Plane { origin, normal } =>
                 plane(origin.0, *normal, p.0, r.0, s.0, scale)
-        };
-
-        (Translation(p), Rotation(r))
+        }
     }
 
     /// Get the new position and rotation from scrolling resulting from the
     /// original position `o`, original rotation `r`, and scroll weight `s`.
-    fn zoom(&self, p: Translation, r: Rotation, s: f32, scale: f32) -> (Translation, Rotation) {
+    fn zoom(&self, p: Translation, r: Rotation, s: f32, scale: f32) -> (Vec3, Quat) {
         fn plane(_o: Vec3, n: Vec3, mut p: Vec3, r: Quat, s: f32, scale: f32) -> (Vec3, Quat) {
             let mut delta = (-r).mul_vec3(Vec3::new(0.0, 0.0, s));  // unscaled delta
             delta *= scale * p.dot(n).abs();  // scale delta by dist
@@ -230,12 +222,10 @@ impl UniversalGeometry {
             (p, r)
         }
 
-        let (p, r) = match self {
+        match self {
             UniversalGeometry::Plane { origin, normal } =>
                 plane(origin.0, *normal, p.0, r.0, s, scale)
-        };
-
-        (Translation(p), Rotation(r))
+        }
     }
 }
 
@@ -284,12 +274,12 @@ fn perform_camera_actions(
         for act in &actions {
             if let Some(t) = bp.get_camspace_vec3_trans(*act) {
                 let (t, r) = res.0.trans(*cam_t, *cam_r, t, bp.trans_scale);
-                *cam_t = t;
-                *cam_r = r;
+                cam_t.0 = t;
+                cam_r.0 = r;
             } else if let Some(w) = bp.get_camspace_vec3_zoom(*act) {
                 let (t, r) = res.0.zoom(*cam_t, *cam_r, w, bp.zoom_scale);
-                *cam_t = t;
-                *cam_r = r;
+                cam_t.0 = t;
+                cam_r.0 = r;
             }
         }
     }
