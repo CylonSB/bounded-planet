@@ -1,0 +1,138 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'bounded-planet'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=bounded-planet"
+                ],
+                "filter": {
+                    "name": "bounded-planet",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'main'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=main",
+                    "--package=bounded-planet"
+                ],
+                "filter": {
+                    "name": "main",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'main'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=main",
+                    "--package=bounded-planet"
+                ],
+                "filter": {
+                    "name": "main",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'cam_continuous_move_test'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=cam_continuous_move_test",
+                    "--package=bounded-planet"
+                ],
+                "filter": {
+                    "name": "cam_continuous_move_test",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'cam_continuous_move_test'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=cam_continuous_move_test",
+                    "--package=bounded-planet"
+                ],
+                "filter": {
+                    "name": "cam_continuous_move_test",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'cam_zoom_winedge_test'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=cam_zoom_winedge_test",
+                    "--package=bounded-planet"
+                ],
+                "filter": {
+                    "name": "cam_zoom_winedge_test",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'cam_zoom_winedge_test'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=cam_zoom_winedge_test",
+                    "--package=bounded-planet"
+                ],
+                "filter": {
+                    "name": "cam_zoom_winedge_test",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
