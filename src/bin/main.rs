@@ -1,14 +1,15 @@
 use bevy::{
     prelude::*,
-    render::{
-        mesh::{shape,VertexAttribute},
-    },
+    render::mesh::shape,
     input::mouse::{
         MouseWheel,
         MouseScrollUnit
     }
 };
-use bounded_planet::camera::*;
+use bounded_planet::{
+    camera::*,
+    land::*,
+};
 
 // The thresholds for window edge.
 const CURSOR_H_THRESHOLD: f32 = 0.55;
@@ -53,65 +54,19 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let land_texture_handle = asset_server
-        .load_sync(&mut textures, "src/media/Height.png")
+        .load_sync(&mut textures, "src/media/CoveWorld.png")
         .unwrap();
-    
-    std::thread::sleep(std::time::Duration::from_secs_f32(2.0));
 
-    let land_texture = textures.get(&land_texture_handle).unwrap().clone();
-    let land_size = land_texture.size;
-    let land_height: Vec<u8> = land_texture.data.iter()
-        .copied()
-        .enumerate()
-        .filter(|(i, _): &(usize, u8)| i % 4 == 2)
-        .unzip::<_, u8, Vec<usize>, _>()
-        .1;
+    let land_texture_top_handle = asset_server
+        .load_sync(&mut textures, "src/media/CoveWorldTop.png")
+        .unwrap();
 
-    let mut land_positions = Vec::with_capacity((land_size.x() * land_size.y()) as usize);
-    let mut land_normals = Vec::with_capacity((land_size.x() * land_size.y()) as usize);
-    let mut land_uvs = Vec::with_capacity((land_size.x() * land_size.y()) as usize);
+    let land_mesh = texture_to_mesh(textures, land_texture_handle);
 
-    let mut land_indices = Vec::with_capacity(((land_size.x() - 1.0) * (land_size.y() - 1.0)) as usize);
-
-    let land_scale = land_size.x() as i32;
-
-    for z in 0..(land_size.y() as i32) {
-        for x in 0..land_scale {
-            
-            let i: u32 = x as u32 + z as u32 * land_size.y() as u32;
-            
-            land_positions.push([x as f32 * 0.2, land_height[i as usize] as f32 / 128.0, z as f32 * 0.2]);
-            land_normals.push([0.0, 1.0, 0.0]);
-            land_uvs.push([x as f32 / land_size.x(), z as f32 / land_size.y()]);
-
-
-            if x != land_scale - 1 && z != land_scale - 1 {
-                land_indices.push(i);
-                land_indices.push(i + land_scale as u32); 
-                land_indices.push(i + land_scale as u32 + 1);
-
-                land_indices.push(i);
-                land_indices.push(i + land_scale as u32 + 1);
-                land_indices.push(i + 1);
-            }
-        }
-    }
-
-    let land_mesh = Mesh {
-        primitive_topology: bevy::render::pipeline::PrimitiveTopology::TriangleList,
-        attributes: vec![
-            VertexAttribute::position(land_positions),
-            VertexAttribute::normal(land_normals),
-            VertexAttribute::uv(land_uvs),
-        ],
-        indices: Some(land_indices),
-    };
-
-    
     commands.spawn(PbrComponents {
         mesh: meshes.add(land_mesh),
         material: materials.add(StandardMaterial {
-            albedo_texture: Some(land_texture_handle),
+            albedo_texture: Some(land_texture_top_handle),
             shaded: false,
             ..Default::default()
         }),
@@ -125,7 +80,7 @@ fn setup(
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             material: materials.add(Color::rgb(0.5, 0.4, 0.3).into()),
-            translation: Translation::new(-land_scale as f32, 1.0, -land_scale as f32),
+            translation: Translation::new(-20 as f32, 1.0, -20 as f32),
             ..Default::default()
         })
         // light
@@ -139,10 +94,10 @@ fn setup(
             rotation: Rotation::from_rotation_xyz(-0.75, 2.7, 0.0),
             ..Default::default()
         }).with(CameraBPConfig {
-            forward_weight: -0.06,
-            back_weight: 0.06,
-            left_weight: -0.06,
-            right_weight: 0.06,
+            forward_weight: -0.01,
+            back_weight: 0.01,
+            left_weight: -0.01,
+            right_weight: 0.01,
             ..Default::default()
         });
 }
