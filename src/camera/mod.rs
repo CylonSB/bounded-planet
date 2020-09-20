@@ -250,15 +250,17 @@ impl Plugin for CameraBPPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource::<InternalUG>(self.geo.into())
             .add_event::<CameraBPAction>()
-            .add_system(perform_camera_actions.system());
+            .add_system(perform_parentless_camera_actions.system())
+            .add_system(perform_parented_camera_actions.system());
     }
 }
 
-/// Performs the camera actions pushed to the queue, for every [`CameraBP`].
-fn perform_camera_actions(
+/// Performs the camera actions pushed to the queue for cameras without
+/// parents.
+fn perform_parentless_camera_actions(
     acts: Res<Events<CameraBPAction>>,
     res: Res<InternalUG>,
-    mut cams: Query<(&CameraBPConfig, &mut Translation, &mut Rotation)>
+    mut cams: Query<Without<Parent, (&CameraBPConfig, &mut Translation, &mut Rotation)>>
 ) {
     let actions = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
 
@@ -272,6 +274,45 @@ fn perform_camera_actions(
                 let (t, r) = res.0.trans(cam_t.0, cam_r.0, t.0, bp.trans_scale);
                 cam_t.0 += t;
                 cam_r.0 *= r;
+            } else if let Some(w) = bp.get_camspace_vec3_zoom(*act) {
+                let (t, r) = res.0.zoom(cam_t.0, cam_r.0, w, bp.zoom_scale);
+                cam_t.0 += t;
+                cam_r.0 *= r;
+            }
+        }
+    }
+}
+
+/// Performs the camera actions pushed to the queue for cameras without
+/// parents.
+fn perform_parented_camera_actions(
+    acts: Res<Events<CameraBPAction>>,
+    res: Res<InternalUG>,
+    parents: Query<&mut Transform>,
+    mut cams: Query<(&Parent, &CameraBPConfig, &mut Translation, &mut Rotation)>
+) {
+    let actions = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
+
+    for (parent, bp, mut cam_t, mut cam_r) in cams.iter().into_iter() {
+        let mut par_tf = if bp.locked {
+            continue;
+        } else if let Some(tf) = parents.get_mut::<Transform>(parent.0).ok() {
+            tf
+        } else {
+            continue;
+        };
+        
+        for act in &actions {
+            if let Some(t) = bp.get_camspace_vec3_trans(*act) {
+                let (t, r) = res.0.trans(
+                    Vec3::from(par_tf.value.w_axis().truncate()) - cam_t.0,
+                    cam_r.0,
+                    t.0,
+                    bp.trans_scale
+                );
+                
+                par_tf.value = par_tf.value * Mat4::from_translation(t);
+                par_tf.value = par_tf.value * Mat4::from_quat(r);
             } else if let Some(w) = bp.get_camspace_vec3_zoom(*act) {
                 let (t, r) = res.0.zoom(cam_t.0, cam_r.0, w, bp.zoom_scale);
                 cam_t.0 += t;
