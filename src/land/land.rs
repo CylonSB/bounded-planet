@@ -1,18 +1,18 @@
 use bevy::{
     prelude::*,
-    render::mesh::VertexAttribute,
-    prelude};
+    render::mesh::VertexAttribute
+};
 
 
 
 //takes a grayscale texture handle and returns a mesh with height based on the grayscale values
 pub fn texture_to_mesh (
     textures: ResMut<Assets<Texture>>,
-    land_texture_handle: prelude::Handle<prelude::Texture>,
-) -> bevy::prelude::Mesh {
+    land_texture_handle: Handle<Texture>,
+) -> Option<Mesh> {
 
     //gets a reference to the data needed
-    let land_texture = textures.get(&land_texture_handle).unwrap();
+    let land_texture = textures.get(&land_texture_handle)?;
 
     //prepares the Vecs with the capacity they need.
     let mut land_positions = Vec::with_capacity((land_texture.size.x() * land_texture.size.y()) as usize);
@@ -63,7 +63,7 @@ pub fn texture_to_mesh (
         indices: Some(land_indices),
     };
 
-    return land_mesh;
+    return Some(land_mesh);
 }
 
 //TODO: fn pub land_pipeline (Creates a render pipeline set up to use Uint32s for vertex indices)

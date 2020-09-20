@@ -61,7 +61,8 @@ fn setup(
         .load_sync(&mut textures, "src/media/CoveWorldTop.png")
         .unwrap();
 
-    let land_mesh = texture_to_mesh(textures, land_texture_handle);
+    let land_mesh = texture_to_mesh(textures, land_texture_handle)
+        .expect("Couldn't turn texture to mesh");
 
     commands.spawn(PbrComponents {
         mesh: meshes.add(land_mesh),
