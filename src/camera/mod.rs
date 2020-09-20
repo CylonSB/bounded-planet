@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use smallvec::SmallVec;
 
 const DEFAULT_TRANS_SCALE: f32 = 0.2;
 const DEFAULT_ZOOM_SCALE: f32 = 0.2;
@@ -148,7 +147,7 @@ impl CameraBPAction {
     pub fn dedup_signals<I: IntoIterator<Item = Self>>(iter: I) -> Vec<Self> {
         // a little bit future-proofed
         const SIGNAL_TYPES: usize = 10;
-        let mut signals = SmallVec::<[CameraBPAction; SIGNAL_TYPES]>::new();
+        let mut signals = Vec::with_capacity(SIGNAL_TYPES);
 
         let (sigs, mut acts): (Vec<_>, Vec<_>) = iter.into_iter().partition(|act| act.is_signal());
 
