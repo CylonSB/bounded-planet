@@ -99,7 +99,6 @@ fn act_camera_on_window_edge(
         let (mut mouse_x, mut mouse_y) = (e.position.x(), e.position.y());
         let window = wins.get(e.id).expect("Couldn't get primary window.");
         let (window_x, window_y) = (window.width as f32, window.height as f32);
-
         // map (mouse_x, mouse_y) into [-1, 1]^2
         mouse_x /= window_x / 2.0;
         mouse_y /= window_y / 2.0;

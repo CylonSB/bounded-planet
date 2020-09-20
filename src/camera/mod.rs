@@ -150,7 +150,6 @@ impl CameraBPAction {
         let mut signals = Vec::with_capacity(SIGNAL_TYPES);
 
         let (sigs, mut acts): (Vec<_>, Vec<_>) = iter.into_iter().partition(|act| act.is_signal());
-
         for sig in sigs.into_iter() {
             if !signals.contains(&sig) {
                 signals.push(sig)
