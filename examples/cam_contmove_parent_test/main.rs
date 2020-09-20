@@ -4,35 +4,23 @@ use bevy::{
 };
 use bounded_planet::camera::*;
 
-/// The threshold for horizontal cursor-activated [`CameraBPConfig`] movement.
-///
-/// Is a proportion of the window size. So, if this is `0.05`, then the cursor
-/// must be within 5% of the window size to either the left or right edge to
-/// trigger this threshold.
-const CURSOR_EDGE_H_THRESHOLD: f32 = 0.05;
-/// The threshold for vertical cursor-activated [`CameraBPConfig`] movement.
-///
-/// Is a proportion of the window size. So, if this is `0.05`, then the cursor
-/// must be within 5% of the window size to either the top or bottom edge to
-/// trigger this threshold.
-const CURSOR_EDGE_V_THRESHOLD: f32 = 0.05;
+// The thresholds for window edge.
+const CURSOR_H_THRESHOLD: f32 = 0.55;
+const CURSOR_V_THRESHOLD: f32 = 0.42;
 
-/// The stage at which the [`CameraBPConfig`] cache is either updated or used to fill
+/// The stage at which the [`CameraBP`] cache is either updated or used to fill
 /// in the action cache now.
 const CAM_CACHE_UPDATE: &'static str = "push_cam_update";
 
-#[derive(Copy, Clone)]
-struct IsActionCacheDirty(bool);
-
-impl Default for IsActionCacheDirty {
-    fn default() -> Self {
-        IsActionCacheDirty(true)
-    }
+#[derive(Default)]
+struct MoveCam {
+    right: Option<f32>,
+    forward: Option<f32>,
 }
 
 fn main() {
     App::build()
-        .init_resource::<IsActionCacheDirty>()
+        .init_resource::<MoveCam>()
         .add_resource(Msaa { samples: 4 })
         .add_default_plugins()
         .add_plugin(CameraBPPlugin {
@@ -86,44 +74,55 @@ fn setup(
             translation: Translation::new(4.0, 8.0, 4.0),
             ..Default::default()
         })
+        // camera anchor
+        .spawn((Transform::new(Mat4::from_translation(
+            Translation::new(0.0, 0.0, -5.0).0,
+        )),))
         // camera
-        .spawn(Camera3dComponents {
-            translation: Translation::new(0.0, 7.0, -5.0),
-            rotation: Rotation::from_rotation_xyz(-0.75, 2.7, 0.0),
-            ..Default::default()
-        })
-        .with(CameraBPConfig::default());
+        .with_children(|parent| {
+            parent
+                .spawn(Camera3dComponents {
+                    translation: Translation::new(0.0, 7.0, 0.0),
+                    rotation: Rotation::from_rotation_xyz(-0.75, 2.7, 0.0),
+                    ..Default::default()
+                })
+                .with(CameraBPConfig {
+                    forward_weight: -0.06,
+                    back_weight: 0.06,
+                    left_weight: -0.06,
+                    right_weight: 0.06,
+                    ..Default::default()
+                });
+        });
 }
 
 /// Pushes camera actions based upon mouse movements near the window edge.
 fn act_camera_on_window_edge(
     wins: Res<Windows>,
-    mut dirty: ResMut<IsActionCacheDirty>,
     pos: Res<Events<CursorMoved>>,
-    mut acts: ResMut<Events<CameraBPAction>>,
+    mut mcam: ResMut<MoveCam>,
 ) {
-    dirty.0 = false;
-
     if let Some(e) = pos.get_reader().find_latest(&pos, |e| e.id.is_primary()) {
-        let (mouse_x, mouse_y) = (e.position.x(), e.position.y());
+        let (mut mouse_x, mut mouse_y) = (e.position.x(), e.position.y());
         let window = wins.get(e.id).expect("Couldn't get primary window.");
         let (window_x, window_y) = (window.width as f32, window.height as f32);
-        dirty.0 = true;
 
-        if mouse_x / window_x <= CURSOR_EDGE_H_THRESHOLD {
-            acts.send(CameraBPAction::MoveLeft(None));
-        }
+        // map (mouse_x, mouse_y) into [-1, 1]^2
+        mouse_x /= window_x / 2.0;
+        mouse_y /= window_y / 2.0;
+        mouse_x -= 1.0;
+        mouse_y -= 1.0;
+        let angle = mouse_x.atan2(mouse_y);
+        let (ax, ay) = (angle.sin(), angle.cos());
+        let in_rect = (-CURSOR_H_THRESHOLD <= mouse_x && mouse_x <= CURSOR_H_THRESHOLD)
+            && (-CURSOR_V_THRESHOLD <= mouse_y && mouse_y <= CURSOR_V_THRESHOLD);
 
-        if 1.0 - mouse_x / window_x <= CURSOR_EDGE_H_THRESHOLD {
-            acts.send(CameraBPAction::MoveRight(None));
-        }
-
-        if mouse_y / window_y <= CURSOR_EDGE_V_THRESHOLD {
-            acts.send(CameraBPAction::MoveBack(None));
-        }
-
-        if 1.0 - mouse_y / window_y <= CURSOR_EDGE_V_THRESHOLD {
-            acts.send(CameraBPAction::MoveForward(None));
+        if !in_rect && ax.is_finite() && ay.is_finite() {
+            mcam.right = Some(ax);
+            mcam.forward = Some(ay);
+        } else {
+            mcam.right = None;
+            mcam.forward = None;
         }
     }
 }
@@ -152,32 +151,14 @@ fn act_on_scroll_wheel(
     }
 }
 
-// Return whether this action was created from the window edge.
-fn is_winedge_act(act: &CameraBPAction) -> bool {
-    match act {
-        CameraBPAction::MoveLeft(_)
-        | CameraBPAction::MoveRight(_)
-        | CameraBPAction::MoveForward(_)
-        | CameraBPAction::MoveBack(_) => true,
-        _ => false,
-    }
-}
-
 /// Depending on `dirty`, either update the local `cache` or fill the event
 /// queue for [`CameraBPAction`] with the locally cached copy.
-fn use_or_update_action_cache(
-    mut cache: Local<Vec<CameraBPAction>>,
-    mut acts: ResMut<Events<CameraBPAction>>,
-    dirty: Res<IsActionCacheDirty>,
-) {
-    if dirty.0 {
-        *cache = CameraBPAction::dedup_signals(
-            acts.get_reader()
-                .iter(&acts)
-                .copied()
-                .filter(is_winedge_act),
-        );
-    } else {
-        acts.extend(cache.iter().copied())
+fn use_or_update_action_cache(mcam: Res<MoveCam>, mut acts: ResMut<Events<CameraBPAction>>) {
+    if let Some(w) = mcam.right {
+        acts.send(CameraBPAction::MoveRight(Some(w)))
+    }
+
+    if let Some(w) = mcam.forward {
+        acts.send(CameraBPAction::MoveForward(Some(w)))
     }
 }
