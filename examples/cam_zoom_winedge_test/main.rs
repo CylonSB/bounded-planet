@@ -1,4 +1,7 @@
-use bevy::{prelude::*, input::mouse::{MouseWheel, MouseScrollUnit}};
+use bevy::{
+    input::mouse::{MouseScrollUnit, MouseWheel},
+    prelude::*,
+};
 use bounded_planet::camera::*;
 
 /// The threshold for horizontal cursor-activated [`CameraBPConfig`] movement.
@@ -35,7 +38,7 @@ fn main() {
         .add_plugin(CameraBPPlugin {
             geo: UniversalGeometry::Plane {
                 origin: Translation::identity(),
-                normal: Vec3::new(0.0, 1.0, 0.0)
+                normal: Vec3::new(0.0, 1.0, 0.0),
             },
             ..Default::default()
         })
@@ -88,7 +91,8 @@ fn setup(
             translation: Translation::new(0.0, 7.0, -5.0),
             rotation: Rotation::from_rotation_xyz(-0.75, 2.7, 0.0),
             ..Default::default()
-        }).with(CameraBPConfig::default());
+        })
+        .with(CameraBPConfig::default());
 }
 
 /// Pushes camera actions based upon mouse movements near the window edge.
@@ -96,11 +100,11 @@ fn act_camera_on_window_edge(
     wins: Res<Windows>,
     mut dirty: ResMut<IsActionCacheDirty>,
     pos: Res<Events<CursorMoved>>,
-    mut acts: ResMut<Events<CameraBPAction>>
+    mut acts: ResMut<Events<CameraBPAction>>,
 ) {
     dirty.0 = false;
 
-    if let Some(e) = pos.get_reader().find_latest(&pos, | e | e.id.is_primary()) {
+    if let Some(e) = pos.get_reader().find_latest(&pos, |e| e.id.is_primary()) {
         let (mouse_x, mouse_y) = (e.position.x(), e.position.y());
         let window = wins.get(e.id).expect("Couldn't get primary window.");
         let (window_x, window_y) = (window.width as f32, window.height as f32);
@@ -127,13 +131,18 @@ fn act_camera_on_window_edge(
 /// Pushes camera actions based upon scroll wheel movement.
 fn act_on_scroll_wheel(
     mouse_wheel: Res<Events<MouseWheel>>,
-    mut acts: ResMut<Events<CameraBPAction>>
+    mut acts: ResMut<Events<CameraBPAction>>,
 ) {
     for mw in mouse_wheel.get_reader().iter(&mouse_wheel) {
         /// If scrolling units are reported in lines rather than pixels,
         /// multiply the returned horizontal scrolling amount by this.
         const LINE_SIZE: f32 = 14.0;
-        let w = mw.y.abs() * if let MouseScrollUnit::Line = mw.unit { LINE_SIZE } else { 1.0 };
+        let w = mw.y.abs()
+            * if let MouseScrollUnit::Line = mw.unit {
+                LINE_SIZE
+            } else {
+                1.0
+            };
 
         if mw.y > 0.0 {
             acts.send(CameraBPAction::ZoomIn(Some(w)))
@@ -150,7 +159,7 @@ fn is_winedge_act(act: &CameraBPAction) -> bool {
         | CameraBPAction::MoveRight(_)
         | CameraBPAction::MoveForward(_)
         | CameraBPAction::MoveBack(_) => true,
-        _ => false
+        _ => false,
     }
 }
 
@@ -159,15 +168,14 @@ fn is_winedge_act(act: &CameraBPAction) -> bool {
 fn use_or_update_action_cache(
     mut cache: Local<Vec<CameraBPAction>>,
     mut acts: ResMut<Events<CameraBPAction>>,
-    dirty: Res<IsActionCacheDirty>
+    dirty: Res<IsActionCacheDirty>,
 ) {
     if dirty.0 {
         *cache = CameraBPAction::dedup_signals(
-            acts
-                .get_reader()
+            acts.get_reader()
                 .iter(&acts)
                 .copied()
-                .filter(is_winedge_act)
+                .filter(is_winedge_act),
         );
     } else {
         acts.extend(cache.iter().copied())
