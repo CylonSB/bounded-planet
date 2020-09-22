@@ -1,9 +1,13 @@
 use bevy::{
     prelude::*,
     render::mesh::shape,
-    input::mouse::{
-        MouseWheel,
-        MouseScrollUnit
+    input::{
+        keyboard::ElementState as PressState,
+        mouse::{
+            MouseWheel,
+            MouseButtonInput,
+            MouseScrollUnit
+        }
     }
 };
 use bounded_planet::{
@@ -42,6 +46,7 @@ fn main() {
         .add_system_to_stage(stage::EVENT_UPDATE, act_on_scroll_wheel.system())
         .add_stage_after(stage::EVENT_UPDATE, CAM_CACHE_UPDATE)
         .add_system_to_stage(CAM_CACHE_UPDATE, use_or_update_action_cache.system())
+        .add_system(play_every_sound_on_mb1.system())
         .run();
 }
 
@@ -52,6 +57,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut textures: ResMut<Assets<Texture>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut sounds: ResMut<Assets<AudioSource>>,
 ) {
     let land_texture_handle = asset_server
         .load_sync(&mut textures, "src/media/CoveWorld.png")
@@ -60,6 +66,10 @@ fn setup(
     let land_texture_top_handle = asset_server
         .load_sync(&mut textures, "src/media/CoveWorldTop.png")
         .expect("Failed to load CoveWorldTop.png");
+
+    asset_server
+        .load_sync(&mut sounds, "src/media/test_sound.mp3")
+        .expect("Failed to load test_sound.mp3");
 
     let land_mesh = texture_to_mesh(textures, land_texture_handle)
         .expect("Couldn't turn texture to mesh");
@@ -162,5 +172,19 @@ fn use_or_update_action_cache(mcam: Res<MoveCam>, mut acts: ResMut<Events<Camera
 
     if let Some(w) = mcam.forward {
         acts.send(CameraBPAction::MoveForward(Some(w)))
+    }
+}
+
+fn play_every_sound_on_mb1(
+    mev: Res<Events<MouseButtonInput>>,
+    fxs: Res<Assets<AudioSource>>,
+    output: Res<AudioOutput>
+) {
+    for mev in mev.get_reader().iter(&mev) {
+        if mev.button == MouseButton::Left && mev.state == PressState::Pressed {
+            for (fx, _) in fxs.iter() {
+                output.play(fx);
+            }
+        }
     }
 }
