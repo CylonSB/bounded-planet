@@ -11,12 +11,19 @@ env:
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
-      
+    - name: Update toolchain
+      run: rustup -v update 
+    - name: Cache Rust dependencies
+      uses: actions/cache@v2.1.1
+      with:
+        path: target
+        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.OS }}-build-
     - name: Print rustc version
       run: rustc --version
     - name: Build
