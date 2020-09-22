@@ -1,19 +1,12 @@
 use bevy::{
-    prelude::*,
-    render::mesh::shape,
     input::{
         keyboard::ElementState as PressState,
-        mouse::{
-            MouseWheel,
-            MouseButtonInput,
-            MouseScrollUnit
-        }
-    }
+        mouse::{MouseButtonInput, MouseScrollUnit, MouseWheel},
+    },
+    prelude::*,
+    render::mesh::shape,
 };
-use bounded_planet::{
-    camera::*,
-    land::*,
-};
+use bounded_planet::{camera::*, land::*};
 
 // The thresholds for window edge.
 const CURSOR_H_THRESHOLD: f32 = 0.55;
@@ -26,7 +19,7 @@ const CAM_CACHE_UPDATE: &'static str = "push_cam_update";
 #[derive(Default)]
 struct MoveCam {
     right: Option<f32>,
-    forward: Option<f32>
+    forward: Option<f32>,
 }
 
 fn main() {
@@ -37,7 +30,7 @@ fn main() {
         .add_plugin(CameraBPPlugin {
             geo: UniversalGeometry::Plane {
                 origin: Translation::identity(),
-                normal: Vec3::new(0.0, 1.0, 0.0)
+                normal: Vec3::new(0.0, 1.0, 0.0),
             },
             ..Default::default()
         })
@@ -71,8 +64,8 @@ fn setup(
         .load_sync(&mut sounds, "src/media/test_sound.mp3")
         .expect("Failed to load test_sound.mp3");
 
-    let land_mesh = texture_to_mesh(textures, land_texture_handle)
-        .expect("Couldn't turn texture to mesh");
+    let land_mesh =
+        texture_to_mesh(textures, land_texture_handle).expect("Couldn't turn texture to mesh");
 
     commands.spawn(PbrComponents {
         mesh: meshes.add(land_mesh),
@@ -104,7 +97,8 @@ fn setup(
             translation: Translation::new(20.0, 20.0, 20.0),
             rotation: Rotation::from_rotation_xyz(-0.75, 2.7, 0.0),
             ..Default::default()
-        }).with(CameraBPConfig {
+        })
+        .with(CameraBPConfig {
             forward_weight: -0.01,
             back_weight: 0.01,
             left_weight: -0.01,
@@ -117,13 +111,13 @@ fn setup(
 fn act_camera_on_window_edge(
     wins: Res<Windows>,
     pos: Res<Events<CursorMoved>>,
-    mut mcam: ResMut<MoveCam>
+    mut mcam: ResMut<MoveCam>,
 ) {
-    if let Some(e) = pos.get_reader().find_latest(&pos, | e | e.id.is_primary()) {
+    if let Some(e) = pos.get_reader().find_latest(&pos, |e| e.id.is_primary()) {
         let (mut mouse_x, mut mouse_y) = (e.position.x(), e.position.y());
         let window = wins.get(e.id).expect("Couldn't get primary window.");
         let (window_x, window_y) = (window.width as f32, window.height as f32);
-        
+
         // map (mouse_x, mouse_y) into [-1, 1]^2
         mouse_x /= window_x / 2.0;
         mouse_y /= window_y / 2.0;
@@ -133,7 +127,7 @@ fn act_camera_on_window_edge(
         let (ax, ay) = (angle.sin(), angle.cos());
         let in_rect = (-CURSOR_H_THRESHOLD <= mouse_x && mouse_x <= CURSOR_H_THRESHOLD)
             && (-CURSOR_V_THRESHOLD <= mouse_y && mouse_y <= CURSOR_V_THRESHOLD);
-        
+
         if !in_rect && ax.is_finite() && ay.is_finite() {
             mcam.right = Some(ax);
             mcam.forward = Some(ay);
@@ -147,13 +141,18 @@ fn act_camera_on_window_edge(
 /// Pushes camera actions based upon scroll wheel movement.
 fn act_on_scroll_wheel(
     mouse_wheel: Res<Events<MouseWheel>>,
-    mut acts: ResMut<Events<CameraBPAction>>
+    mut acts: ResMut<Events<CameraBPAction>>,
 ) {
     for mw in mouse_wheel.get_reader().iter(&mouse_wheel) {
         /// If scrolling units are reported in lines rather than pixels,
         /// multiply the returned horizontal scrolling amount by this.
         const LINE_SIZE: f32 = 14.0;
-        let w = mw.y.abs() * if let MouseScrollUnit::Line = mw.unit { LINE_SIZE } else { 1.0 };
+        let w = mw.y.abs()
+            * if let MouseScrollUnit::Line = mw.unit {
+                LINE_SIZE
+            } else {
+                1.0
+            };
 
         if mw.y > 0.0 {
             acts.send(CameraBPAction::ZoomIn(Some(w)))
@@ -178,7 +177,7 @@ fn use_or_update_action_cache(mcam: Res<MoveCam>, mut acts: ResMut<Events<Camera
 fn play_every_sound_on_mb1(
     mev: Res<Events<MouseButtonInput>>,
     fxs: Res<Assets<AudioSource>>,
-    output: Res<AudioOutput>
+    output: Res<AudioOutput>,
 ) {
     for mev in mev.get_reader().iter(&mev) {
         if mev.button == MouseButton::Left && mev.state == PressState::Pressed {
