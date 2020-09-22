@@ -16,8 +16,6 @@ use bounded_planet::{
     unit_selection::*
 };
 
-use bounded_planet::unit::*;
-
 fn main() {
     App::build()
         .add_resource(Msaa { samples: 4 })

@@ -2,7 +2,15 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
+
+use bevy_mod_picking::*;
+
 use bounded_planet::camera::*;
+
+use bounded_planet::{
+    mesh_picking::*,
+    unit_selection::*,
+};
 
 // The thresholds for window edge.
 const CURSOR_H_THRESHOLD: f32 = 0.55;
@@ -30,6 +38,11 @@ fn main() {
             },
             ..Default::default()
         })
+        // For selection
+        .add_plugin(PickingPlugin)
+        .add_plugin(SelectionPlugin)
+        .add_plugin(DebugPickingPlugin)
+
         .add_startup_system(setup.system())
         .add_system_to_stage(stage::EVENT_UPDATE, act_camera_on_window_edge.system())
         .add_system_to_stage(stage::EVENT_UPDATE, act_on_scroll_wheel.system())
@@ -52,6 +65,9 @@ fn setup(
             material: materials.add(Color::rgb(0.1, 0.2, 0.1).into()),
             ..Default::default()
         })
+        .with(PickableMesh::empty())
+        .with(Selectable)
+
         // cube
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
@@ -59,6 +75,8 @@ fn setup(
             translation: Translation::new(0.0, 1.0, 0.0),
             ..Default::default()
         })
+        .with(PickableMesh::empty())
+        .with(Selectable)
         // sphere
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Icosphere {
@@ -69,6 +87,8 @@ fn setup(
             translation: Translation::new(1.5, 1.5, 1.5),
             ..Default::default()
         })
+        .with(PickableMesh::empty())
+        .with(Selectable)
         // light
         .spawn(LightComponents {
             translation: Translation::new(4.0, 8.0, 4.0),
