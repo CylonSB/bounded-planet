@@ -55,11 +55,11 @@ fn setup(
 ) {
     let land_texture_handle = asset_server
         .load_sync(&mut textures, "src/media/CoveWorld.png")
-        .unwrap();
+        .expect("Failed to load CoveWorld.png");
 
     let land_texture_top_handle = asset_server
         .load_sync(&mut textures, "src/media/CoveWorldTop.png")
-        .unwrap();
+        .expect("Failed to load CoveWorldTop.png");
 
     let land_mesh = texture_to_mesh(textures, land_texture_handle)
         .expect("Couldn't turn texture to mesh");
