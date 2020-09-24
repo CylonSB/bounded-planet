@@ -1,17 +1,17 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use bevy::{prelude::{AppBuilder, Plugin}};
+use bevy::prelude::{AppBuilder, Plugin};
 use quinn::{crypto::rustls::TlsSession, generic::Incoming};
 
 use bevy::prelude::IntoQuerySystem;
 use futures::StreamExt;
 
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
-use tracing::{info};
+use tracing::info;
 
-use crate::networking::{events::ReceiveEvent, events::SendEvent, systems::NetworkConnections, systems::SessionEventListenerState, systems::handle_connection, systems::receive_net_events, systems::send_net_events};
+use crate::networking::{events::{ReceiveEvent, SendEvent}, systems::{NetworkConnections, SessionEventListenerState, handle_connection, receive_net_events, send_net_events}};
 
-// Add this plugin to start a aerver which sends and receives packets to a large number of network connections
+// Add this plugin to start a server which sends and receives packets to a large number of network connections
 #[derive(Debug)]
 pub struct Network {
     pub private_key: quinn::PrivateKey,
@@ -29,7 +29,7 @@ impl Plugin for Network {
             send_event_reader: Default::default(),
         });
 
-        app.add_resource::<NetworkConnections>(Default::default());
+        app.init_resource::<NetworkConnections>();
 
         app.add_event::<ReceiveEvent>();
         app.add_event::<SendEvent>();

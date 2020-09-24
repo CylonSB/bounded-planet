@@ -5,7 +5,7 @@ use quinn::{crypto::rustls::TlsSession, generic::Connecting};
 use tokio::sync::mpsc::unbounded_channel;
 use url::Url;
 
-use crate::networking::{events::ReceiveEvent, events::SendEvent, systems::NetworkConnections, systems::SessionEventListenerState, systems::handle_connection, systems::receive_net_events, systems::send_net_events};
+use crate::networking::{events::{ReceiveEvent, SendEvent}, systems::{NetworkConnections, SessionEventListenerState, handle_connection, receive_net_events, send_net_events}};
 
 pub struct Network {
     pub addr: SocketAddr,
@@ -23,13 +23,14 @@ impl Plugin for Network {
             send_event_reader: Default::default(),
         });
 
+        app.init_resource::<NetworkConnections>();
         app.add_resource::<NetworkConnections>(Default::default());
 
         app.add_event::<ReceiveEvent>();
         app.add_event::<SendEvent>();
 
         // Start a task that waits for the connection to finish opening
-        tokio::spawn(handle_connection(create_endpoint(&self.addr, &self.url).expect("Failed to create an endpoint"), send.clone()));
+        tokio::spawn(handle_connection(create_endpoint(&self.addr, &self.url, &self.cert).expect("Failed to create an endpoint"), send.clone()));
 
         // Add a system that consumes all network events from an MPSC and publishes them as ECS events
         app.add_system(receive_net_events.system());
@@ -39,12 +40,12 @@ impl Plugin for Network {
     }
 }
 
-fn create_endpoint(addr: &SocketAddr, url: &Url) -> Result<Connecting<TlsSession>, Box<dyn std::error::Error>> {
+fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::CertificateChain) -> Result<Connecting<TlsSession>, Box<dyn std::error::Error>> {
     let mut endpoint = quinn::Endpoint::builder();
     let mut client_config = quinn::ClientConfigBuilder::default();
     client_config.protocols(&[b"hq-29"]);
 
-    //todo:add a hardcoded server certificate here
+    //todo:add a server authority here
     //client_config.add_certificate_authority(server_cert);
 
     endpoint.default_client_config(client_config.build());
