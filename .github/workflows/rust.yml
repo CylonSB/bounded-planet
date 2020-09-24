@@ -15,28 +15,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      
-    - &install_toolchain
-      name: Install toolchain
+    - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         override: true
         profile: minimal
         components: clippy, rustfmt
-      
-    - &cache_windows_deps
-      name: Cache Rust dependencies
+    - name: Cache Rust dependencies
       uses: actions/cache@v2.1.1
       with:
         path: target
         key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.OS }}-build-
-          
-    - &print_rustc_version
-      name: Print rustc version
+    - name: Print rustc version
       run: rustc --version
+
     - name: Check
       run: cargo check --verbose
 
@@ -45,10 +40,22 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
-      
-    - *install_toolchain
-    - *cache_windows_deps
-    - *print_rustc_version
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        profile: minimal
+        components: clippy, rustfmt
+    - name: Cache Rust dependencies
+      uses: actions/cache@v2.1.1
+      with:
+        path: target
+        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.OS }}-build-
+    - name: Print rustc version
+      run: rustc --version
       
     - name: Build
       run: cargo build --verbose
