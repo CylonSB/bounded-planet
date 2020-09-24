@@ -10,23 +10,45 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  check:
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Update toolchain
-      run: rustup -v update 
-    - name: Cache Rust dependencies
+      
+    - &install_toolchain
+      name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        profile: minimal
+        components: clippy, rustfmt
+      
+    - &cache_windows_deps
+      name: Cache Rust dependencies
       uses: actions/cache@v2.1.1
       with:
         path: target
         key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.OS }}-build-
-    - name: Print rustc version
+          
+    - &print_rustc_version
+      name: Print rustc version
       run: rustc --version
+    - name: Check
+      run: cargo check --verbose
+
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+      
+    - *install_toolchain
+    - *cache_windows_deps
+    - *print_rustc_version
+      
     - name: Build
       run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
