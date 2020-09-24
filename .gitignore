@@ -1,3 +1,6 @@
 /target
-Cargo.lock
+/test_assets
 .vscode/settings.json
+.vscode
+
+Cargo.lock
