@@ -25,7 +25,7 @@ pub struct NetworkConnections {
     pub connections: HashMap<ConnectionId, Entity>
 }
 
-// Consume events from ECS and publish them to the correct MPSC to send it over the network
+/// Consume events from ECS and publish them to the correct MPSC to send it over the network
 pub fn receive_net_events(
     mut commands: Commands,
     mut session: ResMut<SessionEventListenerState>,
@@ -98,7 +98,7 @@ pub fn receive_net_events(
     }
 }
 
-// Take ECS events and forward them to MPSCs to be sent over the network
+/// Take ECS events and forward them to MPSCs to be sent over the network
 pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_events: ResMut<Events<SendEvent>>) {
     // Publish packets ready to send to appropriate MPSC channels
     for send in session.send_event_reader.iter(&send_events) {
@@ -125,7 +125,7 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
     }
 }
 
-// Handle all the work of a single connection (waiting for new streams to open)
+/// Handle all the work of a single connection (waiting for new streams to open)
 pub async fn handle_connection(
     conn: quinn::Connecting,
     event_sender: UnboundedSender<ReceiveEvent>,
@@ -163,7 +163,7 @@ pub async fn handle_connection(
     Ok(())
 }
 
-// Handle all the work of a specific stream
+/// Handle all the work of a specific stream
 async fn handle_stream(
     connection_id: ConnectionId,
     stream_send: SendStream<TlsSession>,
@@ -201,7 +201,7 @@ async fn handle_stream(
     tokio::spawn(send_to_stream(stream_send, recv));
 }
 
-// Pull packets from socket and push into an mpsc
+/// Pull packets from socket and push into an mpsc
 async fn recv_from_stream(
     connection_id: ConnectionId,
     stream_id: StreamId,
