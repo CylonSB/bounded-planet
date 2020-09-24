@@ -1,0 +1,141 @@
+name: Full
+
+on:
+  push:
+    branches: [ never ]
+  pull_request:
+    branches: [ never ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        profile: minimal
+        components: rustfmt
+    
+    - name: Check with rustfmt
+      run: cargo +nightly fmt --all -- --check
+
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    needs: [format]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        profile: minimal
+    - uses: actions/cache@v2.1.1
+      with:
+        path: |
+          target
+          ~/.cargo/registry
+          ~/.cargo/git
+        # key: ${{ runner.OS }}-target-${{ github.sha }}-${{ github.job }}
+        key: ${{ runner.OS }}-target-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.OS }}-target-${{ github.sha }}
+          ${{ runner.OS }}-target
+
+    - name: Install Linux dependencies
+      if: ${{ runner.OS == 'Linux' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libudev-dev
+  
+    - name: Build
+      run: cargo build --verbose --workspace --all-targets
+
+  clippy:
+    name: Clippy lint
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        profile: minimal
+        components: clippy
+    - uses: actions/cache@v2.1.1
+      with:
+        path: |
+          target
+          ~/.cargo/registry
+          ~/.cargo/git
+        # key: ${{ runner.OS }}-target-${{ github.sha }}-${{ github.job }}
+        key: ${{ runner.OS }}-target-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.OS }}-target-${{ github.sha }}
+          ${{ runner.OS }}-target
+    - name: Install Linux dependencies
+      if: ${{ runner.OS == 'Linux' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libudev-dev
+
+    - name: Run clippy
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --verbose --workspace --all-targets
+
+  test:
+    name: Run test suite
+    runs-on: ${{ matrix.os }}
+    needs: [clippy]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        profile: minimal
+    - uses: actions/cache@v2.1.1
+      with:
+        path: |
+          target
+          ~/.cargo/registry
+          ~/.cargo/git
+        # key: ${{ runner.OS }}-target-${{ github.sha }}-${{ github.job }}
+        key: ${{ runner.OS }}-target-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.OS }}-target-${{ github.sha }}
+          ${{ runner.OS }}-target
+    - name: Install Linux dependencies
+      if: ${{ runner.OS == 'Linux' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libudev-dev
+  
+    - name: Test
+      run: cargo test --verbose --workspace --all-targets
+
+  pass:
+    name: Passed
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+    - run: exit 0

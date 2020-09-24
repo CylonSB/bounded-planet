@@ -26,14 +26,14 @@ pub fn texture_to_mesh(
             let i: u32 = x as u32 + z as u32 * land_texture.size.y() as u32;
 
             //pushes the current Vertex's VertexAttributes to the correct Vecs.
-            //TODO: Use sampler to get mipped height data, rather than using direct data
+            //TODO(#28): Use sampler to get mipped height data, rather than using direct data
             land_positions.push([
                 x as f32,
                 land_texture.data[i as usize] as f32 / 16.0,
                 z as f32,
             ]);
 
-            //TODO: Generate normals based on texture data
+            //TODO(#27): Generate normals based on texture data
             land_normals.push([0.0, 1.0, 0.0]);
 
             land_uvs.push([
@@ -70,6 +70,6 @@ pub fn texture_to_mesh(
     return Some(land_mesh);
 }
 
-//TODO: fn pub land_pipeline (Creates a render pipeline set up to use Uint32s for vertex indices)
+//TODO(#26): fn pub land_pipeline (Creates a render pipeline set up to use Uint32s for vertex indices)
 //Note: May also include Vert shader that adds some roughness/recalculates normals and Frag shader that
 //      adds some subtle color based on height or distance from camera
