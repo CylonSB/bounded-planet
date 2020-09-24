@@ -1,87 +1,89 @@
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{fs, net::SocketAddr, path::PathBuf};
+use std::time::Duration;
 
+use bevy::app::ScheduleRunnerPlugin;
+use bevy::prelude::*;
 use structopt::StructOpt;
-
-use futures::{StreamExt, TryFutureExt};
-
-use tokio::net::TcpListener;
-use tokio::prelude::*;
-
-use tracing::{error, info, info_span};
-
-use rcgen::generate_simple_self_signed;
+use tracing::{Level, info, error};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "server")]
 struct Opt {
-
     /// Address to listen on
     #[structopt(long = "listen", default_value = "[::1]:4433")]
-    listen: SocketAddr,
+    addr: SocketAddr,
+
+    /// TLS private key in PEM format
+    #[structopt(parse(from_os_str), short = "k", long = "key", required=true)]
+    key: PathBuf,
+    
+    /// TLS certificate in PEM format
+    #[structopt(parse(from_os_str), short = "c", long = "cert", required=true)]
+    cert: PathBuf,
 }
 
 fn main() {
     tracing::subscriber::set_global_default(
         tracing_subscriber::FmtSubscriber::builder()
-            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+            .with_max_level(Level::TRACE)
             .finish(),
     )
     .unwrap();
+
     let opt = Opt::from_args();
     let code = {
         if let Err(e) = run(opt) {
-            eprintln!("ERROR: {}", e);
+            error!("ERROR: {}", e);
             1
         } else {
             0
         }
     };
-    ::std::process::exit(code);
+    std::process::exit(code);
 }
 
 #[tokio::main]
 async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
+    // Create a Bevy app
+    let mut app = App::build();
+    app.add_plugin(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
+        1.0 / 10.0,
+    )));
 
-    // Configure endpoint
-    let mut transport_config = quinn::TransportConfig::default();
-    transport_config.stream_window_uni(128);
-    let mut server_config = quinn::ServerConfig::default();
-    server_config.transport = Arc::new(transport_config);
-    let mut server_config = quinn::ServerConfigBuilder::new(server_config);
-    server_config.protocols(&[b"hq-29"]);
+    let (key, cert) = get_certs(&options.key, &options.cert)?;
+    app.add_plugin(bounded_planet::networking::server::plugin::Network {
+        certificate: cert,
+        private_key: key,
+        addr: options.addr,
+    });
 
-    // Configure encryption
-    let (priv_key, cert) = get_certs()?;
-    server_config.certificate(quinn::CertificateChain::from_certs(vec![cert]), priv_key)?;
-
-    // Begin listening for connections
-    let mut endpoint = quinn::Endpoint::builder();
-    endpoint.listen(server_config.build());
-    let (endpoint, mut incoming) = endpoint.bind(&options.listen)?;
-    drop(endpoint);
-
-    while let Some(conn) = incoming.next().await {
-        info!("connection incoming");
-        tokio::spawn(
-            handle_connection(conn).unwrap_or_else(move |e| {
-                error!("connection failed: {reason}", reason = e.to_string())
-            }),
-        );
-    }
+    // Run it forever
+    app.run();
 
     Ok(())
 }
 
-async fn handle_connection(conn: quinn::Connecting) -> Result<(), Box<dyn std::error::Error>> {
-    info!("Connection :O");
-    Ok(())
-}
+// Fetch vertificates to use
+fn get_certs(key_path: &PathBuf, cert_path: &PathBuf) -> Result<(quinn::PrivateKey, quinn::CertificateChain), Box<dyn std::error::Error>> {
 
-fn get_certs() -> Result<(quinn::PrivateKey, quinn::Certificate), Box<dyn std::error::Error>> {
-    info!("generating self-signed certificate");
-    let cert = generate_simple_self_signed(vec!["localhost".into()]).unwrap();
-    let key = cert.serialize_private_key_der();
-    let cert = cert.serialize_der().unwrap();
-    Ok((quinn::PrivateKey::from_der(&key)?, quinn::Certificate::from_der(&cert)?))
+    info!("Loading Key: {:?}", key_path);
+    let key = fs::read(key_path)?;
+    let key = if key_path.extension().map_or(false, |x| x == "der") {
+        quinn::PrivateKey::from_der(&key)?
+    } else {
+        quinn::PrivateKey::from_pem(&key)?
+    };
+
+    info!("Loading Cert: {:?}", cert_path);
+    let cert_chain = fs::read(cert_path)?;
+    let cert_chain = if cert_path.extension().map_or(false, |x| x == "der") {
+        quinn::CertificateChain::from_certs(quinn::Certificate::from_der(&cert_chain))
+    } else {
+        quinn::CertificateChain::from_pem(&cert_chain)?
+    };
+
+    Ok((
+        key,
+        cert_chain,
+    ))
 }

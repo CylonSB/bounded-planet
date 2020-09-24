@@ -1,2 +1,7 @@
 {
+    "extensions.ignoreRecommendations": true,
+    "files.autoSave": "off"
+    "extensions.ignoreRecommendations": true,
+    "files.autoSave": "off"
+    "extensions.ignoreRecommendations": true
 }
