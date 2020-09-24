@@ -15,11 +15,11 @@ pub struct AuthRequest {
     pub password: String,
 }
 
-/// Authentication response sent form the server to the client
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AuthResponse {
-    pub accepted: bool,
-    pub message: Option<String>,
+pub enum AuthResponse {
+    Ok,
+    IncorrectUsername,
+    IncorrectPassword,
 }
 
 /// A text chat message

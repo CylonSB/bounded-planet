@@ -3,6 +3,7 @@ use quinn::{generic::SendStream, WriteError};
 
 use crate::networking::packets::*;
 
+/// Wrap a stream, ready to send packets which can be decoded by a `BoundedPlanetRecvStream`
 #[derive(Debug)]
 pub struct BoundedPlanetSendStream<T: Session> {
     send: SendStream<T>,
@@ -10,7 +11,11 @@ pub struct BoundedPlanetSendStream<T: Session> {
 
 #[derive(Debug)]
 pub enum SendError {
+
+    /// Sending a packet failed due to a serialisation error
     EncodeError(rmp_serde::encode::Error),
+
+    /// Sending a packet failed while writing to the socket
     WriteError(WriteError),
 }
 
@@ -19,6 +24,7 @@ impl<TSession: Session> BoundedPlanetSendStream<TSession> {
         BoundedPlanetSendStream { send }
     }
 
+    /// Send a packet over the network
     pub async fn send_packet<'a>(&mut self, packet: &Packet) -> Result<(), SendError> {
         // Encode packet into messagepack format
         let bytes = rmp_serde::to_vec(&packet).map_err(|e| SendError::EncodeError(e))?;
@@ -40,6 +46,8 @@ impl<TSession: Session> BoundedPlanetSendStream<TSession> {
     }
 }
 
+
+/// Wrap a stream, ready to receive packets which were encoded by a `BoundedPlanetRecvStream`
 #[derive(Debug)]
 pub struct BoundedPlanetRecvStream<T: Session> {
     recv: RecvStream<T>,
@@ -47,7 +55,11 @@ pub struct BoundedPlanetRecvStream<T: Session> {
 
 #[derive(Debug)]
 pub enum RecvError {
+
+    /// Receiving a packet failed due to a deserialisation error
     DecodeError(rmp_serde::decode::Error),
+
+    /// Receiving a packet failed while reading from the socket
     ReadExactError(ReadExactError),
 }
 
@@ -56,6 +68,7 @@ impl<TSession: Session> BoundedPlanetRecvStream<TSession> {
         BoundedPlanetRecvStream { recv }
     }
 
+    /// Receive a packet from the network
     pub async fn recv_packet(&mut self) -> Result<Packet, RecvError> {
         // Read 4 byte network ordered length prefix
         let mut length_prefix_buf = [0u8, 0, 0, 0];
