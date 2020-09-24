@@ -7,19 +7,19 @@ use tracing::{error, info};
 
 use super::{components::Connection, events::ReceiveEvent, events::SendEvent, id::ConnectionId, id::StreamId, packets::Packet, streams::BoundedPlanetRecvStream, streams::BoundedPlanetSendStream};
 
-// Internal state of the network session system
+/// Internal state of the network session system
 pub struct SessionEventListenerState {
-    // Map from ConnectionID => StreamId => StreamSender
+    /// Map from ConnectionID => StreamId => StreamSender
     pub stream_senders: HashMap<ConnectionId, HashMap<StreamId, UnboundedSender<Packet>>>,
 
-    // MPSC which receives all events from the network
+    /// MPSC which receives all events from the network
     pub event_receiver: UnboundedReceiver<ReceiveEvent>,
 
-    // Event reader used for pulling send events and publishing them to the network
+    /// Event reader used for pulling send events and publishing them to the network
     pub send_event_reader: EventReader<SendEvent>,
 }
 
-// ECS resources containing a map of active network connections
+/// ECS resources containing a map of active network connections
 #[derive(Default)]
 pub struct NetworkConnections {
     pub connections: HashMap<ConnectionId, Entity>
@@ -228,7 +228,7 @@ async fn recv_from_stream(
     }
 }
 
-// Pull packets from an mpsc and send them to the given stream
+/// Pull packets from an mpsc and send them to the given stream
 async fn send_to_stream(send: SendStream<TlsSession>, mut recv: UnboundedReceiver<Packet>) {
     let mut send = BoundedPlanetSendStream::new(send);
     while let Some(pkt) = recv.recv().await {
