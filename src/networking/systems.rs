@@ -112,6 +112,7 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
 
                 if let Some(sender) = sender {
                     if let Err(e) = sender.send(data.to_owned()) {
+                        //todo: expose these errors somehow once we decide exactly how network errors will work
                         error!("Send Error: {:?}", e);
                     }
                 } else {

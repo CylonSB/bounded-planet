@@ -5,7 +5,19 @@ use quinn::{crypto::rustls::TlsSession, generic::Connecting};
 use tokio::sync::mpsc::unbounded_channel;
 use url::Url;
 
-use crate::networking::{events::{ReceiveEvent, SendEvent}, systems::{NetworkConnections, SessionEventListenerState, handle_connection, receive_net_events, send_net_events}};
+use crate::networking::{
+    events::{
+        ReceiveEvent,
+        SendEvent
+    },
+    systems::{
+        NetworkConnections,
+        SessionEventListenerState,
+        handle_connection,
+        receive_net_events,
+        send_net_events
+    }
+};
 
 pub struct Network {
     pub addr: SocketAddr,

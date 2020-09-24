@@ -9,7 +9,19 @@ use futures::StreamExt;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use tracing::info;
 
-use crate::networking::{events::{ReceiveEvent, SendEvent}, systems::{NetworkConnections, SessionEventListenerState, handle_connection, receive_net_events, send_net_events}};
+use crate::networking::{
+    events::{
+        ReceiveEvent,
+        SendEvent
+    },
+    systems::{
+        NetworkConnections,
+        SessionEventListenerState,
+        handle_connection,
+        receive_net_events,
+        send_net_events
+    }
+};
 
 // Add this plugin to start a server which sends and receives packets to a large number of network connections
 #[derive(Debug)]
