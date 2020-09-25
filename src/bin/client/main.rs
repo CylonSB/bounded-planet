@@ -75,7 +75,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Fetch certificates to use
+/// Fetch certificates to use
 fn get_cert(cert_path: &PathBuf) -> Result<quinn::Certificate, Box<dyn std::error::Error>> {
     info!("Loading Cert: {:?}", cert_path);
     Ok(quinn::Certificate::from_der(&fs::read(cert_path)?)?)
