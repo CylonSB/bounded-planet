@@ -47,9 +47,10 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ github.sha }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
         restore-keys: |
-          ${{ runner.OS }}-build-
+          ${{ runner.OS }}-build-${{ github.sha }}
+          ${{ runner.OS }}-build
 
     - name: Install Linux dependencies
       if: ${{ runner.OS == 'Linux' }}
@@ -79,9 +80,10 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ github.sha }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
         restore-keys: |
-          ${{ runner.OS }}-build-
+          ${{ runner.OS }}-build-${{ github.sha }}
+          ${{ runner.OS }}-build
     - name: Install Linux dependencies
       if: ${{ runner.OS == 'Linux' }}
       run: |
@@ -115,9 +117,10 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ github.sha }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
         restore-keys: |
-          ${{ runner.OS }}-build-
+          ${{ runner.OS }}-build-${{ github.sha }}
+          ${{ runner.OS }}-build
     - name: Install Linux dependencies
       if: ${{ runner.OS == 'Linux' }}
       run: |
