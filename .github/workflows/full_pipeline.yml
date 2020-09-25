@@ -1,11 +1,5 @@
 name: Full Pipeline
 
-# on:
-#   push:
-#     branches: [ master, staging, trying ]
-#   pull_request:
-#     branches: [ master ]
-
 on:
   push:
     branches: [ never ]
