@@ -4,7 +4,9 @@ use std::time::Duration;
 use bevy::app::ScheduleRunnerPlugin;
 use bevy::prelude::*;
 use structopt::StructOpt;
-use tracing::{Level, info, error};
+use tracing::{Level, info, error, warn};
+
+use bounded_planet::networking::components::Connection;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "server")]
@@ -57,6 +59,8 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
         addr: options.addr,
     });
 
+    app.add_system(log_connections.system());
+
     // Run it forever
     app.run();
 
@@ -86,4 +90,8 @@ fn get_certs(key_path: &PathBuf, cert_path: &PathBuf) -> Result<(quinn::PrivateK
         key,
         cert_chain,
     ))
+}
+
+fn log_connections(_conn: &Connection) {
+    warn!("Connection Entity Exists!");
 }

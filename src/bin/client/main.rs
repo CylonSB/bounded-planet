@@ -1,9 +1,11 @@
 use std::{fs, net::ToSocketAddrs, path::PathBuf, time::Duration};
 
 use structopt::StructOpt;
-use bevy::{app::ScheduleRunnerPlugin, prelude::App};
+use bevy::prelude::*;
+use bevy::{app::ScheduleRunnerPlugin};
 
-use tracing::{Level, info};
+use bounded_planet::networking::components::Connection;
+use tracing::{Level, info, warn};
 use url::Url;
 
 #[derive(StructOpt, Debug)]
@@ -65,6 +67,8 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
         accept_any_cert: options.accept_any_cert
     });
 
+    app.add_system(log_connections.system());
+
     // Run it forever
     app.run();
 
@@ -75,4 +79,8 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
 fn get_cert(cert_path: &PathBuf) -> Result<quinn::Certificate, Box<dyn std::error::Error>> {
     info!("Loading Cert: {:?}", cert_path);
     Ok(quinn::Certificate::from_der(&fs::read(cert_path)?)?)
+}
+
+fn log_connections(_conn: &Connection) {
+    warn!("Connection Entity Exists!");
 }
