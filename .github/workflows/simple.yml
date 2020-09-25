@@ -50,9 +50,9 @@ jobs:
           ~/.cargo/git
         # key: ${{ runner.OS }}-target-${{ github.sha }}-${{ github.job }}
         key: ${{ runner.OS }}-target-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.OS }}-target-${{ github.sha }}
-          ${{ runner.OS }}-target
+        # restore-keys: |
+        #   ${{ runner.OS }}-target-${{ github.sha }}
+        #   ${{ runner.OS }}-target
 
     - name: Install Linux dependencies
       if: ${{ runner.OS == 'Linux' }}
