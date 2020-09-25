@@ -47,7 +47,8 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
+        # key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}
         restore-keys: |
           ${{ runner.OS }}-build-${{ github.sha }}
           ${{ runner.OS }}-build
@@ -80,7 +81,8 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
+        # key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}
         restore-keys: |
           ${{ runner.OS }}-build-${{ github.sha }}
           ${{ runner.OS }}-build
@@ -117,7 +119,8 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
+        # key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}
         restore-keys: |
           ${{ runner.OS }}-build-${{ github.sha }}
           ${{ runner.OS }}-build
