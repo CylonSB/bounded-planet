@@ -137,3 +137,5 @@ jobs:
     name: Passed
     runs-on: ubuntu-latest
     needs: [test]
+    steps:
+    - run: exit 0
