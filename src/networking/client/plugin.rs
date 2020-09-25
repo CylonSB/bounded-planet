@@ -4,18 +4,21 @@ use bevy::prelude::{AppBuilder, Plugin, IntoQuerySystem};
 use quinn::{ClientConfigBuilder, crypto::rustls::TlsSession, generic::Connecting};
 use tokio::sync::mpsc::unbounded_channel;
 use url::Url;
-use tracing::{error, warn};
 
-use crate::networking::{crypto::SkipServerVerification, events::{
+use crate::networking::{
+    crypto::SkipServerVerification,
+    events::{
         ReceiveEvent,
         SendEvent
-    }, systems::{
+    },
+    systems::{
         NetworkConnections,
         SessionEventListenerState,
         handle_connection,
         receive_net_events,
         send_net_events
-    }};
+    },
+};
 
 pub struct Network {
     pub addr: SocketAddr,
@@ -41,7 +44,12 @@ impl Plugin for Network {
         app.add_event::<SendEvent>();
 
         // Start a task that waits for the connection to finish opening
-        tokio::spawn(handle_connection(create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert).expect("Failed to create an endpoint"), send.clone()));
+        tokio::spawn(
+            handle_connection(
+                create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert).expect("Failed to create an endpoint"),
+                send.clone()
+            )
+        );
 
         // Add a system that consumes all network events from an MPSC and publishes them as ECS events
         app.add_system(receive_net_events.system());

@@ -25,7 +25,7 @@ impl<TSession: Session> BoundedPlanetSendStream<TSession> {
     }
 
     /// Send a packet over the network
-    pub async fn send_packet<'a>(&mut self, packet: &Packet) -> Result<(), SendError> {
+    pub async fn send_packet(&mut self, packet: &Packet) -> Result<(), SendError> {
         // Encode packet into messagepack format
         let bytes = rmp_serde::to_vec(&packet).map_err(|e| SendError::EncodeError(e))?;
 
@@ -86,8 +86,7 @@ impl<TSession: Session> BoundedPlanetRecvStream<TSession> {
             .map_err(|e| RecvError::ReadExactError(e))?;
 
         // Decode it
-        let packet: Packet =
-            rmp_serde::from_read_ref(&data).map_err(|e| RecvError::DecodeError(e))?;
+        let packet: Packet = rmp_serde::from_read_ref(&data).map_err(|e| RecvError::DecodeError(e))?;
         return Ok(packet);
     }
 }

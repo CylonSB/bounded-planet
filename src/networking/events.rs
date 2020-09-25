@@ -25,6 +25,7 @@ pub enum ReceiveEvent {
     },
 
     /// An error occured in attempting to receive a packet from the given stream
+    //TODO(#29):Improve error handling
     ReceiveError {
         connection_id: ConnectionId,
         stream_id: StreamId,
@@ -38,7 +39,7 @@ pub enum ReceiveEvent {
     SocketClosed,
 
     // An error occured during sending
-    //todo:SendError
+    //TODO(#29):SendError
 }
 
 /// An event to send to the network

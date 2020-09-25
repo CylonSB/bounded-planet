@@ -30,7 +30,7 @@ fn main() {
             .with_max_level(Level::TRACE)
             .finish(),
     )
-    .unwrap();
+    .expect("Failed to configure logging");
 
     let opt = Opt::from_args();
     let code = {
@@ -67,7 +67,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Fetch vertificates to use
+// Fetch certificates to use
 fn get_certs(key_path: &PathBuf, cert_path: &PathBuf) -> Result<(quinn::PrivateKey, quinn::CertificateChain), Box<dyn std::error::Error>> {
 
     info!("Loading Key: {:?}", key_path);

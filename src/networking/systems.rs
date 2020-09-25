@@ -1,9 +1,9 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use bevy::prelude::{Commands, Entity, EventReader, Events, ResMut};
 use quinn::{crypto::rustls::TlsSession, generic::{RecvStream, SendStream}};
 use tokio::{stream::StreamExt, sync::mpsc::UnboundedReceiver, sync::mpsc::UnboundedSender, sync::mpsc::unbounded_channel};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use super::{components::Connection, events::ReceiveEvent, events::SendEvent, id::ConnectionId, id::StreamId, packets::Packet, streams::BoundedPlanetRecvStream, streams::BoundedPlanetSendStream};
 
@@ -25,7 +25,7 @@ pub struct NetworkConnections {
     pub connections: HashMap<ConnectionId, Entity>
 }
 
-/// Consume events from ECS and publish them to the correct MPSC to send it over the network
+/// Consume events from the network (sent through MPSCs) and publish them to the ECS
 pub fn receive_net_events(
     mut commands: Commands,
     mut session: ResMut<SessionEventListenerState>,
@@ -39,6 +39,7 @@ pub fn receive_net_events(
     // Pull network events from MPSC and publish them
     while let Ok(event) = event_receiver.try_recv() {
         match event {
+            
             // A new connection has opened, allocate an entry in the hashmap
             ReceiveEvent::Connected(id) => {
 
@@ -59,6 +60,8 @@ pub fn receive_net_events(
                 // Delete the entity representing this connection
                 if let Some(e) = entities.connections.remove(&id) {
                     commands.despawn(e);
+                } else {
+                    warn!("Failed to delete connection Entity for ConnectionId:{:?}", id);
                 }
 
                 // drop all stream senders
@@ -69,7 +72,7 @@ pub fn receive_net_events(
             ReceiveEvent::OpenedStream {
                 connection_id,
                 stream_id,
-                ref sender,
+                ref sender
             } => {
                 session
                     .stream_senders
@@ -112,7 +115,7 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
 
                 if let Some(sender) = sender {
                     if let Err(e) = sender.send(data.to_owned()) {
-                        //todo: expose these errors somehow once we decide exactly how network errors will work
+                        //TODO(#29): expose these errors somehow once we decide exactly how network errors will work
                         error!("Send Error: {:?}", e);
                     }
                 } else {
@@ -234,7 +237,7 @@ async fn send_to_stream(send: SendStream<TlsSession>, mut recv: UnboundedReceive
     let mut send = BoundedPlanetSendStream::new(send);
     while let Some(pkt) = recv.recv().await {
         if let Err(e) = send.send_packet(&pkt).await {
-            // todo expose this error in a more useful way
+            //TODO(#29): expose this error in a more useful way 
             error!("Send Error: {:?}", e);
         }
     }

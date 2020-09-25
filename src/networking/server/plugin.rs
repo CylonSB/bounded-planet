@@ -23,7 +23,7 @@ use crate::networking::{
     }
 };
 
-// Add this plugin to start a server which sends and receives packets to a large number of network connections
+/// Add this plugin to start a server which sends and receives packets to a large number of network connections
 #[derive(Debug)]
 pub struct Network {
     pub private_key: quinn::PrivateKey,
@@ -65,7 +65,7 @@ impl Plugin for Network {
     }
 }
 
-// Poll for new incoming connection requests
+/// Poll for new incoming connection requests
 async fn poll_new_connections(
     mut incoming: Incoming<TlsSession>,
     event_sender: UnboundedSender<ReceiveEvent>,
@@ -82,7 +82,7 @@ async fn poll_new_connections(
     let _ = event_sender.send(ReceiveEvent::SocketClosed);
 }
 
-// Create a network endpoint
+/// Create a network endpoint
 fn create_endpoint(
     listen: SocketAddr,
     private_key: quinn::PrivateKey,
@@ -105,8 +105,7 @@ fn create_endpoint(
     // Begin listening for connections, drop the endpoint because we don't need to establish any outgoing connections
     let mut endpoint = quinn::Endpoint::builder();
     endpoint.listen(server_config.build());
-    let (endpoint, incoming) = endpoint.bind(&listen)?;
-    drop(endpoint);
+    let (_, incoming) = endpoint.bind(&listen)?;
 
     return Ok(incoming);
 }

@@ -44,15 +44,15 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
             .with_max_level(Level::TRACE)
             .finish(),
     )
-    .unwrap();
+    .expect("Failed to configure logging");
 
     // Resolve URL from options
     let url = options.url;
-    let remote = (url.host_str().unwrap(), url.port().unwrap_or(4433))
+    let remote = (url.host_str().expect("Failed to get host string from URL"), url.port().unwrap_or(4433))
         .to_socket_addrs()?
         .next()
-        .ok_or_else(|| panic!("couldn't resolve to an address")).unwrap();
-
+        .expect("couldn't resolve to an address");
+ 
     // Create a Bevy app
     let mut app = App::build();
     app.add_plugin(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
