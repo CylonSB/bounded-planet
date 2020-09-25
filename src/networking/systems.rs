@@ -149,7 +149,7 @@ pub async fn handle_connection(
     while let Some(stream) = bi_streams.next().await {
         match stream {
             Err(quinn::ConnectionError::ApplicationClosed { .. }) => break,
-            Err(e) => error!("Connection error: {:?}", e),
+            Err(e) => { error!("Connection error: {:?}", e); break; },
             Ok((send, recv)) => {
                 tokio::spawn(handle_stream(guid, send, recv, event_sender.clone()));
             }
