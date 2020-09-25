@@ -45,7 +45,7 @@ jobs:
           ~/.cargo/git
         key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
     - name: Install Linux dependencies
-      if: startsWith(matrix.os, 'ubuntu')
+      if: ${{ runner.OS == 'Linux' }}
       run: |
         sudo apt-get update
         sudo apt-get install -y libasound2-dev
@@ -76,7 +76,7 @@ jobs:
           ~/.cargo/git
         key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
     - name: Install Linux dependencies
-      if: startsWith(matrix.os, 'ubuntu')
+      if: ${{ runner.OS == 'Linux' }}
       run: |
         sudo apt-get update
         sudo apt-get install -y libasound2-dev
@@ -108,7 +108,7 @@ jobs:
           ~/.cargo/git
         key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
     - name: Install Linux dependencies
-      if: startsWith(matrix.os, 'ubuntu')
+      if: ${{ runner.OS == 'Linux' }}
       run: |
         sudo apt-get update
         sudo apt-get install -y libasound2-dev
