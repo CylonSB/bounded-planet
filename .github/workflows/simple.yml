@@ -46,8 +46,8 @@ jobs:
       with:
         path: |
           target
-          ~/.cargo/registry
-          ~/.cargo/git
+          # ~/.cargo/registry
+          # ~/.cargo/git
         # key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
         key: ${{ runner.OS }}-build-${{ github.sha }}
         restore-keys: |
@@ -58,7 +58,7 @@ jobs:
       if: ${{ runner.OS == 'Linux' }}
       run: |
         sudo apt-get update
-        sudo apt-get install -y libasound2-dev
+        sudo apt-get install -y libasound2-dev libudev-dev
   
     - name: Build
       run: cargo build --verbose --workspace --all-targets
