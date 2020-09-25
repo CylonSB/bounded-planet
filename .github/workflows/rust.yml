@@ -11,7 +11,7 @@ env:
 
 jobs:
   format:
-    name: Check code formatting
+    name: Check code formatting with rustfmt
     runs-on: ubuntu-latest
 
     steps:
@@ -27,8 +27,7 @@ jobs:
 
   clippy:
     name: Lint with clippy
-    runs-on: windows-latest
-    needs: format
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -45,33 +44,76 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
         key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install Linux dependencies
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev
 
     - run: cargo clippy
 
   build:
+    name: Build
     runs-on: ${{ matrix.os }}
-    needs: format
+    needs: [format, clippy]
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
     
     steps:
     - uses: actions/checkout@v2
-    - name: Install toolchain
-      uses: actions-rs/toolchain@v1
+    - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         override: true
         profile: minimal
-    
+        components: clippy
+    - uses: actions/cache@v2.1.1
+      with:
+        path: |
+          target
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
     - name: Install Linux dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get update
         sudo apt-get install -y libasound2-dev
-    
-    - name: Print rustc version
-      run: rustc --version
-      
+  
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --workspace --all-targets
+
+  test:
+    name: Run test suite
+    runs-on: ${{ matrix.os }}
+    needs: [build]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        profile: minimal
+        components: clippy
+    - uses: actions/cache@v2.1.1
+      with:
+        path: |
+          target
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install Linux dependencies
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev
+  
+    - name: Test
+      run: cargo test --verbose --workspace --all-targets
+
+
