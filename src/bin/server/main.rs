@@ -67,7 +67,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Fetch certificates to use
+/// Fetch certificates to use
 fn get_certs(key_path: &PathBuf, cert_path: &PathBuf) -> Result<(quinn::PrivateKey, quinn::CertificateChain), Box<dyn std::error::Error>> {
 
     info!("Loading Key: {:?}", key_path);
