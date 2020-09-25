@@ -41,6 +41,7 @@ jobs:
         toolchain: stable
         override: true
         profile: minimal
+        components: clippy
     - uses: actions/cache@v2.1.1
       with:
         path: |
