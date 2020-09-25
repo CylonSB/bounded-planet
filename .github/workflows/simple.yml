@@ -46,8 +46,8 @@ jobs:
       with:
         path: |
           target
-          # ~/.cargo/registry
-          # ~/.cargo/git
+          ~/.cargo/registry
+          ~/.cargo/git
         # key: ${{ runner.OS }}-build-${{ github.sha }}-${{ github.job }}
         key: ${{ runner.OS }}-build-${{ github.sha }}
         restore-keys: |
