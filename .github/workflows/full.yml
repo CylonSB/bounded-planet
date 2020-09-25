@@ -2,9 +2,9 @@ name: Full
 
 on:
   push:
-    branches: [ master, staging, trying ]
+    branches: [ never ]
   pull_request:
-    branches: [ master ]
+    branches: [ never ]
 
 env:
   CARGO_TERM_COLOR: always

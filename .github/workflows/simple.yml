@@ -2,7 +2,7 @@ name: Simple
 
 on:
   push:
-    branches: [ master, staging, trying ]
+    branches: [ staging, trying ]
   pull_request:
     branches: [ master ]
 
