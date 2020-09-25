@@ -41,9 +41,13 @@ jobs:
     - uses: actions/cache@v2.1.1
       with:
         path: target
-        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}
         restore-keys: |
           ${{ runner.OS }}-build-
+
+    - name: Print GITHUB_WORKSPACE key
+      run: echo ${{ env.GITHUB_WORKSPACE }}
+    - run: ls ${{ env.GITHUB_WORKSPACE }}
 
     - run: cargo clippy
 
