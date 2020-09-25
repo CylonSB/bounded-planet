@@ -1,6 +1,6 @@
 # Require the "Build" job to pass
 status = [
-    "Simple"
+    "Passed"
 ]
 
 # Require 3 approvals
