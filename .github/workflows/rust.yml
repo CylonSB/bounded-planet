@@ -40,14 +40,11 @@ jobs:
         components: clippy
     - uses: actions/cache@v2.1.1
       with:
-        path: target
-        key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.OS }}-build-
-
-    - name: Print GITHUB_WORKSPACE key
-      run: echo ${{ env.GITHUB_WORKSPACE }}
-    - run: ls ${{ env.GITHUB_WORKSPACE }}
+        path: |
+          target
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
 
     - run: cargo clippy
 
