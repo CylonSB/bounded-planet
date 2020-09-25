@@ -1,6 +1,6 @@
 # Require the "Build" job to pass
 status = [
-    "Build"
+    "Passed"
 ]
 
 # Require 3 approvals
@@ -9,5 +9,5 @@ required_approvals = 3
 # Delete branches after they're merged
 delete_merged_branches = true
 
-# Set the bors timeout to 10 minutes, after which it counts the build as failed
-timeout_sec = 600
+# Set the bors timeout to 20 minutes, after which it counts the build as failed
+timeout_sec = 1200
