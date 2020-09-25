@@ -1,28 +1,27 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use bevy::prelude::{AppBuilder, Plugin, IntoQuerySystem};
-use quinn::{crypto::rustls::TlsSession, generic::Connecting};
+use quinn::{ClientConfigBuilder, crypto::rustls::TlsSession, generic::Connecting};
 use tokio::sync::mpsc::unbounded_channel;
 use url::Url;
+use tracing::{error, warn};
 
-use crate::networking::{
-    events::{
+use crate::networking::{crypto::SkipServerVerification, events::{
         ReceiveEvent,
         SendEvent
-    },
-    systems::{
+    }, systems::{
         NetworkConnections,
         SessionEventListenerState,
         handle_connection,
         receive_net_events,
         send_net_events
-    }
-};
+    }};
 
 pub struct Network {
     pub addr: SocketAddr,
     pub url: Url,
-    pub cert: quinn::CertificateChain
+    pub cert: quinn::Certificate,
+    pub accept_any_cert : bool,
 }
 
 impl Plugin for Network {
@@ -42,7 +41,7 @@ impl Plugin for Network {
         app.add_event::<SendEvent>();
 
         // Start a task that waits for the connection to finish opening
-        tokio::spawn(handle_connection(create_endpoint(&self.addr, &self.url, &self.cert).expect("Failed to create an endpoint"), send.clone()));
+        tokio::spawn(handle_connection(create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert).expect("Failed to create an endpoint"), send.clone()));
 
         // Add a system that consumes all network events from an MPSC and publishes them as ECS events
         app.add_system(receive_net_events.system());
@@ -52,15 +51,25 @@ impl Plugin for Network {
     }
 }
 
-fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::CertificateChain) -> Result<Connecting<TlsSession>, Box<dyn std::error::Error>> {
-    let mut endpoint = quinn::Endpoint::builder();
-    let mut client_config = quinn::ClientConfigBuilder::default();
+fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::Certificate, accept_any_cert: bool) -> Result<Connecting<TlsSession>, Box<dyn std::error::Error>> {
+
+    let mut client_config = ClientConfigBuilder::default();
     client_config.protocols(&[b"hq-29"]);
+    
+    let mut client_config = client_config.build();
+    if accept_any_cert {
+        let tls_cfg: &mut rustls::ClientConfig = Arc::get_mut(&mut client_config.crypto).unwrap();
+        // this is only available when compiled with "dangerous_configuration" feature
+        tls_cfg
+            .dangerous()
+            .set_certificate_verifier(SkipServerVerification::new());
+    } else {
+        client_config.add_certificate_authority(server_cert.clone()).expect("Adding cert failed");
+    }
 
-    //todo:add a server authority here
-    //client_config.add_certificate_authority(server_cert);
-
-    endpoint.default_client_config(client_config.build());
+    let mut endpoint = quinn::Endpoint::builder();
+    
+    endpoint.default_client_config(client_config);
 
     let (endpoint, _) = endpoint.bind(&"[::]:0".parse().unwrap())?;
     let connecting = endpoint.connect(addr, &url.host_str().unwrap())?;

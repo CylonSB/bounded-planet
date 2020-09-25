@@ -16,6 +16,9 @@ struct Opt {
     /// TLS certificate in PEM format
     #[structopt(parse(from_os_str), short="c", long="cert")]
     cert: PathBuf,
+
+    #[structopt(short="a", long="accept_any")]
+    accept_any_cert: bool
 }
 
 fn main() {
@@ -58,7 +61,8 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     app.add_plugin(bounded_planet::networking::client::plugin::Network {
         addr: remote,
         url: url,
-        cert: cert
+        cert: cert,
+        accept_any_cert: options.accept_any_cert
     });
 
     // Run it forever
@@ -67,16 +71,8 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Fetch vertificates to use
-fn get_cert(cert_path: &PathBuf) -> Result<quinn::CertificateChain, Box<dyn std::error::Error>> {
-
+// Fetch certificates to use
+fn get_cert(cert_path: &PathBuf) -> Result<quinn::Certificate, Box<dyn std::error::Error>> {
     info!("Loading Cert: {:?}", cert_path);
-    let cert_chain = fs::read(cert_path)?;
-    let cert_chain = if cert_path.extension().map_or(false, |x| x == "der") {
-        quinn::CertificateChain::from_certs(quinn::Certificate::from_der(&cert_chain))
-    } else {
-        quinn::CertificateChain::from_pem(&cert_chain)?
-    };
-
-    Ok(cert_chain)
+    Ok(quinn::Certificate::from_der(&fs::read(cert_path)?)?)
 }

@@ -25,3 +25,8 @@ bevy_core = "0.1.3"
 bevy_diagnostic = "0.1.3"
 futures-util = "0.3.5"
 uuid = { version = "0.8", features = ["v4"] }
+
+# rustls isn't directly needed, it's a dependency of `quinn`. The `dangerous_configuration` feature is required to bypass security in the networking.
+# Make sure to recheck this versaion number when updating quinn!
+rustls = { version = "0.17.0", features = [ "dangerous_configuration" ] }
+webpki = { version = "0.21.3" }
