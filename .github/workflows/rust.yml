@@ -47,7 +47,10 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.OS }}-build-
+
     - name: Install Linux dependencies
       if: ${{ runner.OS == 'Linux' }}
       run: |
@@ -76,7 +79,9 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.OS }}-build-
     - name: Install Linux dependencies
       if: ${{ runner.OS == 'Linux' }}
       run: |
@@ -87,7 +92,7 @@ jobs:
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-features
+        args: --verbose --workspace --all-targets
 
   test:
     name: Run test suite
@@ -110,7 +115,9 @@ jobs:
           target
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.OS }}-build-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.OS }}-build-
     - name: Install Linux dependencies
       if: ${{ runner.OS == 'Linux' }}
       run: |
