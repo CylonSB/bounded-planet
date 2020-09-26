@@ -19,7 +19,7 @@ const CURSOR_EDGE_V_THRESHOLD: f32 = 0.05;
 
 /// The stage at which the [`CameraBPConfig`] cache is either updated or used to fill
 /// in the action cache now.
-const CAM_CACHE_UPDATE: &'static str = "push_cam_update";
+const CAM_CACHE_UPDATE: &str = "push_cam_update";
 
 #[derive(Copy, Clone)]
 struct IsActionCacheDirty(bool);

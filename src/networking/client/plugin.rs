@@ -82,5 +82,5 @@ fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::Certificat
     let (endpoint, _) = endpoint.bind(&"[::]:0".parse().unwrap())?;
     let connecting = endpoint.connect(addr, &url.host_str().unwrap())?;
 
-    return Ok(connecting);
+    Ok(connecting)
 }

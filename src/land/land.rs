@@ -67,7 +67,7 @@ pub fn texture_to_mesh(
         indices: Some(land_indices),
     };
 
-    return Some(land_mesh);
+    Some(land_mesh)
 }
 
 //TODO(#26): fn pub land_pipeline (Creates a render pipeline set up to use Uint32s for vertex indices)

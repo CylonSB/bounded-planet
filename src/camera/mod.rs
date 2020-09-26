@@ -307,7 +307,7 @@ fn perform_parented_camera_actions(
     for (parent, bp, mut cam_t, mut cam_r) in cams.iter().into_iter() {
         let mut par_tf = if bp.locked {
             continue;
-        } else if let Some(tf) = parents.get_mut::<Transform>(parent.0).ok() {
+        } else if let Ok(tf) = parents.get_mut::<Transform>(parent.0) {
             tf
         } else {
             continue;

@@ -107,5 +107,5 @@ fn create_endpoint(
     endpoint.listen(server_config.build());
     let (_, incoming) = endpoint.bind(&listen)?;
 
-    return Ok(incoming);
+    Ok(incoming)
 }

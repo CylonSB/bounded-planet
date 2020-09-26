@@ -14,7 +14,7 @@ const CURSOR_V_THRESHOLD: f32 = 0.42;
 
 /// The stage at which the [`CameraBP`] cache is either updated or used to fill
 /// in the action cache now.
-const CAM_CACHE_UPDATE: &'static str = "push_cam_update";
+const CAM_CACHE_UPDATE: &str = "push_cam_update";
 
 #[derive(Default)]
 struct MoveCam {
