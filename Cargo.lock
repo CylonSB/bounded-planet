@@ -643,10 +643,7 @@ name = "bounded-planet"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_core",
- "bevy_diagnostic",
  "bevy_rapier3d",
- "bevy_type_registry",
  "deflate",
  "futures",
  "futures-util",
