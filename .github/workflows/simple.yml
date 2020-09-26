@@ -13,7 +13,6 @@ jobs:
   full-check:
     name: Check everything
     runs-on: ${{ matrix.os }}
-    needs: [format]
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
