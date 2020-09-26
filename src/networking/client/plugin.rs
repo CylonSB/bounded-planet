@@ -47,7 +47,7 @@ impl Plugin for Network {
         tokio::spawn(
             handle_connection(
                 create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert).expect("Failed to create an endpoint"),
-                send.clone()
+                send
             )
         );
 

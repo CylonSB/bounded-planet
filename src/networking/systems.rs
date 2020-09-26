@@ -109,7 +109,7 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
             SendEvent::SendPacket { connection_id, stream_id, data } => {
                 let sender = session
                     .stream_senders
-                    .entry(connection_id.clone())
+                    .entry(*connection_id)
                     .or_default()
                     .get(&stream_id);
 
