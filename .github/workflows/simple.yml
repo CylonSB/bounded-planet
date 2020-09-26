@@ -29,8 +29,9 @@ jobs:
       with:
         path: |
           target
-          ~/.cargo/registry
-          ~/.cargo/git
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
         key: ${{ runner.OS }}-simple-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.OS }}-simple
@@ -42,16 +43,16 @@ jobs:
         sudo apt-get install -y libasound2-dev libudev-dev
   
     - name: Build
-      run: cargo build --verbose --workspace --all-targets
+      run: cargo build --verbose --workspace --all-targets --locked
 
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        args: --workspace --all-targets --all-features
+        args: --workspace --all-targets --all-features --locked -- D warnings
 
     - name: Test
-      run: cargo test --verbose --workspace --all-targets
+      run: cargo test --verbose --workspace --all-targets --locked
 
   pass:
     name: Passed
