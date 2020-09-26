@@ -29,13 +29,13 @@ max_width = 100
 reorder_imports = true
 reorder_modules = true
 imports_indent = "Block"
-imports_layout = "HorizontalVertical"
+imports_layout = "Vertical"
 merge_imports = true
 skip_children = false
 
 ## Match styling
 #
-match_block_trailing_comma = true
+match_block_trailing_comma = false
 match_arm_blocks = false
 
 ## Blank line control

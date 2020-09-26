@@ -10,22 +10,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  format:
-    name: Check formatting
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        override: true
-        profile: minimal
-        components: rustfmt
-    
-    - name: Check with rustfmt
-      run: cargo +nightly fmt --all -- --check
-
   full-check:
     name: Check everything
     runs-on: ${{ matrix.os }}
