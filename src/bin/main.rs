@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
     render::mesh::shape,
 };
-use bounded_planet::{camera::*, land::*};
+use bounded_planet::{camera::*, land::mesh::*};
 
 // The thresholds for window edge.
 const CURSOR_H_THRESHOLD: f32 = 0.55;
