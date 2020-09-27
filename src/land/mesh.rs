@@ -36,7 +36,7 @@ impl Iterator for QuadPatchGenerator {
         };
         self.idx += 1;
 
-        return v;
+        v
     }
 }
 
@@ -73,7 +73,7 @@ pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::
                 2f32
             ).normalize();
             
-            return [n.x(), n.y(), n.z()];
+            [n.x(), n.y(), n.z()]
         })
         .collect::<Vec<_>>();
 
@@ -88,19 +88,20 @@ pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::
         indices: Some(indices(width, height)),
     };
 
-    return Ok(land_mesh);
+    Ok(land_mesh)
 }
 
 fn uvs(width: i32, height: i32) -> Vec<[f32; 2]> {
-    return (0..height).cartesian_product(0..width)
+    (0..height).cartesian_product(0..width)
         .map(move |(z, x)| [x as f32 / (width - 1) as f32, z as f32 / (height - 1) as f32])
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
 }
 
 fn indices(width: i32, height: i32) -> Vec<u32> {
     let width = width as u32;
     let height = height as u32;
-    return (0..height-1).cartesian_product(0..width-1)
+    
+    (0..height-1).cartesian_product(0..width-1)
         .flat_map(move |(z, x)| QuadPatchGenerator::new(x + z * width, width))
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
 }

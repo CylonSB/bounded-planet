@@ -34,10 +34,10 @@ impl<'a> TextureHeightmap<'a> {
             return Err(WrapError::UnsupportedFormat(texture.format));
         }
 
-        return Ok(TextureHeightmap {
+        Ok(TextureHeightmap {
             texture,
             size: (texture.size.x() as u32 - 2, texture.size.y() as u32 - 2),
-        });
+        })
     }
 }
 
@@ -50,7 +50,7 @@ impl<'a> HeightmapData for TextureHeightmap<'a>
     fn sample(&self, x:i32, y:i32) -> Result<f32, SamplingError>
     {
         // Sanity check that read coordinates are in bounds
-        if (x >= self.size.0 as i32 + 1) || (y > self.size.1 as i32 + 1) || (y < -1) || (x < -1) {
+        if (x > self.size.0 as i32) || (y > self.size.1 as i32) || (y < -1) || (x < -1) {
             return Err(SamplingError::ReadOutOfBounds())
         }
 
