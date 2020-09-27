@@ -1,0 +1,123 @@
+## General non-formatting configurations
+#
+version = "Two"
+unstable_features = true
+edition = "2018"
+ignore = []
+color = "Auto"
+disable_all_formatting = false
+hide_parse_errors = true
+license_template_path = ""
+report_fixme = "Unnumbered"
+report_todo = "Unnumbered"
+
+## Already agreed upon configurations
+#
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Unix"
+
+## Width configuration
+#
+error_on_unformatted = false
+error_on_line_overflow = false
+use_small_heuristics = "Default"
+max_width = 100
+
+## Import/module styling
+#
+reorder_imports = true
+reorder_modules = true
+imports_indent = "Block"
+imports_layout = "Vertical"
+merge_imports = true
+skip_children = false
+
+## Match styling
+#
+match_block_trailing_comma = false
+match_arm_blocks = false
+
+## Blank line control
+#
+blank_lines_lower_bound = 0
+blank_lines_upper_bound = 100
+# preserve_block_start_blank_lines = true
+
+## Brace style
+#
+brace_style = "SameLineWhere"
+control_brace_style = "AlwaysSameLine"
+
+## Indent control
+#
+indent_style = "Block"
+
+## Comment control
+#
+wrap_comments = false
+# comment_width = 80
+normalize_comments = false
+
+## Doc comment control
+#
+format_code_in_doc_comments = false
+normalize_doc_attributes = false
+
+## Function formatting
+#
+fn_args_layout = "Tall"
+fn_single_line = false
+
+## General item styling
+#
+empty_item_single_line = true
+reorder_impl_items = true
+where_single_line = false
+type_punctuation_density = "Wide"
+merge_derives = false
+inline_attribute_width = 0
+
+## Macro styling
+#
+format_macro_matchers = true
+format_macro_bodies = true
+
+## Random spaces configuration
+#
+space_after_colon = true
+space_before_colon = false
+# space_before_fn_sig_paren = false
+spaces_around_ranges = false
+# space_around_attr_eq = true
+
+## Struct formatting
+#
+struct_lit_single_line = true
+struct_field_align_threshold = 0
+
+## Enum formatting
+#
+enum_discrim_align_threshold = 0
+
+## Trailing punctuation
+#
+trailing_comma = "Vertical"
+trailing_semicolon = true
+
+## Misc formatting
+#
+binop_separator = "Front"
+format_strings = false
+remove_nested_parens = true
+condense_wildcard_suffixes = false
+
+force_explicit_abi = true
+
+# This is possibly contentious, but like, it's just dumb not to...
+use_field_init_shorthand = true
+use_try_shorthand = true
+
+combine_control_expr = true
+force_multiline_blocks = false
+overflow_delimited_expr = true

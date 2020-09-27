@@ -62,8 +62,8 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     let cert = get_cert(&options.cert)?;
     app.add_plugin(bounded_planet::networking::client::plugin::Network {
         addr: remote,
-        url: url,
-        cert: cert,
+        url,
+        cert,
         accept_any_cert: options.accept_any_cert
     });
 

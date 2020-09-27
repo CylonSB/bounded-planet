@@ -27,22 +27,22 @@ impl<TSession: Session> BoundedPlanetSendStream<TSession> {
     /// Send a packet over the network
     pub async fn send_packet(&mut self, packet: &Packet) -> Result<(), SendError> {
         // Encode packet into messagepack format
-        let bytes = rmp_serde::to_vec(&packet).map_err(|e| SendError::EncodeError(e))?;
+        let bytes = rmp_serde::to_vec(&packet).map_err(SendError::EncodeError)?;
 
         // Prefix with length (4 bytes, network order)
         let len_bytes = (bytes.len() as u32).to_be_bytes();
         self.send
             .write_all(&len_bytes)
             .await
-            .map_err(|e| SendError::WriteError(e))?;
+            .map_err(SendError::WriteError)?;
 
         // Write data to socket
         self.send
             .write_all(&bytes)
             .await
-            .map_err(|e| SendError::WriteError(e))?;
+            .map_err(SendError::WriteError)?;
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -75,7 +75,7 @@ impl<TSession: Session> BoundedPlanetRecvStream<TSession> {
         self.recv
             .read_exact(&mut length_prefix_buf)
             .await
-            .map_err(|e| RecvError::ReadExactError(e))?;
+            .map_err(RecvError::ReadExactError)?;
         let length_prefix = u32::from_be_bytes(length_prefix_buf);
 
         // Read that many bytes
@@ -83,10 +83,11 @@ impl<TSession: Session> BoundedPlanetRecvStream<TSession> {
         self.recv
             .read_exact(&mut data.as_mut_slice())
             .await
-            .map_err(|e| RecvError::ReadExactError(e))?;
+            .map_err(RecvError::ReadExactError)?;
 
         // Decode it
-        let packet: Packet = rmp_serde::from_read_ref(&data).map_err(|e| RecvError::DecodeError(e))?;
-        return Ok(packet);
+        let packet: Packet = rmp_serde::from_read_ref(&data).map_err(RecvError::DecodeError)?;
+
+        Ok(packet)
     }
 }

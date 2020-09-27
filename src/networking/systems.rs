@@ -47,12 +47,12 @@ pub fn receive_net_events(
                 commands.spawn((
                     Connection { id },
                 ));
-                entities.connections.insert(id.clone(), commands.current_entity().expect("`spawn` did not create an entity"));
+                entities.connections.insert(id, commands.current_entity().expect("`spawn` did not create an entity"));
 
                 // Create a hashmap to hold stream MPSCs for this connection
                 session
                     .stream_senders
-                    .insert(id.clone(), Default::default());
+                    .insert(id, Default::default());
             }
 
             ReceiveEvent::Disconnected(id) => {
@@ -76,9 +76,9 @@ pub fn receive_net_events(
             } => {
                 session
                     .stream_senders
-                    .entry(connection_id.clone())
+                    .entry(connection_id)
                     .or_default()
-                    .insert(stream_id.clone(), sender.clone());
+                    .insert(stream_id, sender.clone());
             }
 
             // When the socket closes throw away all session state
@@ -109,7 +109,7 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
             SendEvent::SendPacket { connection_id, stream_id, data } => {
                 let sender = session
                     .stream_senders
-                    .entry(connection_id.clone())
+                    .entry(*connection_id)
                     .or_default()
                     .get(&stream_id);
 

@@ -47,7 +47,7 @@ impl Plugin for Network {
         tokio::spawn(
             handle_connection(
                 create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert).expect("Failed to create an endpoint"),
-                send.clone()
+                send
             )
         );
 
@@ -82,5 +82,5 @@ fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::Certificat
     let (endpoint, _) = endpoint.bind(&"[::]:0".parse().unwrap())?;
     let connecting = endpoint.connect(addr, &url.host_str().unwrap())?;
 
-    return Ok(connecting);
+    Ok(connecting)
 }
