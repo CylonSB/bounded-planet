@@ -67,13 +67,13 @@ pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::
             let u = sample(x, z + 1);
 
             // Calculate normal
-            let n = Vec3::new(
+            let norm = Vec3::new(
                 l - r,
                 d - u,
                 2f32
             ).normalize();
             
-            [n.x(), n.y(), n.z()]
+            [norm.x(), norm.y(), norm.z()]
         })
         .collect::<Vec<_>>();
 
