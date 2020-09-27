@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
     render::mesh::shape,
 };
-use bounded_planet::{camera::*, land::mesh::*};
+use bounded_planet::{camera::*, land::*, land::TextureHeightmap};
 
 // The thresholds for window edge.
 const CURSOR_H_THRESHOLD: f32 = 0.55;
@@ -53,7 +53,7 @@ fn setup(
     mut sounds: ResMut<Assets<AudioSource>>,
 ) {
     let land_texture_handle = asset_server
-        .load_sync(&mut textures, "src/media/CoveWorld.png")
+        .load_sync(&mut textures, "src/media/CoveWorldtest.png")
         .expect("Failed to load CoveWorld.png");
 
     let land_texture_top_handle = asset_server
@@ -64,14 +64,13 @@ fn setup(
         .load_sync(&mut sounds, "src/media/test_sound.mp3")
         .expect("Failed to load test_sound.mp3");
 
-    let land_mesh =
-        texture_to_mesh(textures, land_texture_handle).expect("Couldn't turn texture to mesh");
+    let wrap = TextureHeightmap::new(textures.get(&land_texture_handle).expect("Couldn't get texture")).expect("Couldn't wrap texture");
+    let land_mesh = texture_to_mesh(&wrap).expect("Couldn't turn texture to mesh");
 
     commands.spawn(PbrComponents {
         mesh: meshes.add(land_mesh),
         material: materials.add(StandardMaterial {
             albedo_texture: Some(land_texture_top_handle),
-            shaded: false,
             ..Default::default()
         }),
         translation: Translation::new(4.0, 1.5, 4.0),
@@ -90,6 +89,11 @@ fn setup(
         // light
         .spawn(LightComponents {
             translation: Translation::new(4.0, 8.0, 4.0),
+            light: Light {
+                color: Color::WHITE,
+                fov: 90f32,
+                depth: 0f32..100.0
+            },
             ..Default::default()
         })
         // camera
