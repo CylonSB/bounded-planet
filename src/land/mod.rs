@@ -1,6 +1,5 @@
 mod land;
 
-mod bintree;
 mod heightmap;
 pub use heightmap::TextureHeightmap;
 

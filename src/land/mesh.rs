@@ -1,7 +1,5 @@
 use bevy::{prelude::*, render::mesh::VertexAttribute};
 
-use rayon::iter::ParallelBridge;
-use rayon::prelude::ParallelIterator;
 use itertools::Itertools;
 
 use super::heightmap::HeightmapData;
@@ -46,27 +44,37 @@ impl Iterator for QuadPatchGenerator {
 pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::Error>>
     where T: HeightmapData
 {
-    let width = land_texture.size().0;
-    let height = land_texture.size().1;
+    let width = land_texture.size().0 as i32;
+    let height = land_texture.size().1 as i32;
 
-    // Generate UVs
-    let uvs = (0..height).cartesian_product(0..width)
-        .map(move |(z, x)| [x as f32 / (width - 1) as f32, z as f32 / (height - 1) as f32])
-        .collect::<Vec<_>>();
+    // Define a helper to sample the underlying data
+    let sample = |x, z| {
+        land_texture.sample(x, z).expect("Failed to sample heightmap") as f32 / 16.0
+    };
 
     // Generate positions
     let positions = (0..height).cartesian_product(0..width)
-        .map(move |(z, x)| [x as f32, land_texture.sample(x, z).expect("Failed to sample heightmap") as f32 / 16.0, z as f32])
+        .map(move |(z, x)| [x as f32, sample(x, z), z as f32])
         .collect::<Vec<_>>();
 
-    // Generate indices
-    let indices = (0..height).cartesian_product(0..width)
-        .flat_map(move |(z, x)| QuadPatchGenerator::new(x + z * width, width))
-        .collect::<Vec<_>>();
-
-    // todo(#27): Generate normals
+    // Generate normals
     let normals = (0..height).cartesian_product(0..width)
-        .map(move |(z, x)| [0.0, 1.0, 0.0])
+        .map(move |(z, x)| {
+            // Sample 4 terrain points around central point
+            let l = sample(x - 1, z);
+            let r = sample(x + 1, z);
+            let d = sample(x, z - 1);
+            let u = sample(x, z + 1);
+
+            // Calculate normal
+            let n = Vec3::new(
+                l - r,
+                d - u,
+                2f32
+            ).normalize();
+            
+            return [n.x(), n.y(), n.z()];
+        })
         .collect::<Vec<_>>();
 
     //Generates the mesh from the information generated above using bevy's mesh generators
@@ -75,14 +83,24 @@ pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::
         attributes: vec![
             VertexAttribute::position(positions),
             VertexAttribute::normal(normals),
-            VertexAttribute::uv(uvs),
+            VertexAttribute::uv(uvs(width, height)),
         ],
-        indices: Some(indices),
+        indices: Some(indices(width, height)),
     };
 
     return Ok(land_mesh);
 }
 
-//TODO: fn pub land_pipeline (Creates a render pipeline set up to use Uint32s for vertex indices)
-//Note: May also include Vert shader that adds some roughness/recalculates normals and Frag shader that
-//      adds some subtle color based on height or distance from camera
+fn uvs(width: i32, height: i32) -> Vec<[f32; 2]> {
+    return (0..height).cartesian_product(0..width)
+        .map(move |(z, x)| [x as f32 / (width - 1) as f32, z as f32 / (height - 1) as f32])
+        .collect::<Vec<_>>();
+}
+
+fn indices(width: i32, height: i32) -> Vec<u32> {
+    let width = width as u32;
+    let height = height as u32;
+    return (0..height-1).cartesian_product(0..width-1)
+        .flat_map(move |(z, x)| QuadPatchGenerator::new(x + z * width, width))
+        .collect::<Vec<_>>();
+}

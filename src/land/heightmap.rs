@@ -11,18 +11,14 @@ pub trait HeightmapData
     /// Sampled values must be in the [0, size-1] range.
     fn size(&self) -> (u32, u32);
 
-    /// Sample a height from the heightmap.
-    fn sample(&self, x:u32, y:u32) -> Result<f32, SamplingError>;
+    /// Sample a height from the heightmap. This allows reads one either side of the size, i.e. `-1` and `size().0` are valid sample positions
+    fn sample(&self, x:i32, y:i32) -> Result<f32, SamplingError>;
 }
 
 /// Wrap a texture as a heightmap
 pub struct TextureHeightmap<'a> {
     pub texture: &'a Texture,
     size: (u32, u32),
-
-    pixel_bytes: u8,
-    chan_start: usize,
-    chan_end: usize,
 }
 
 #[derive(Debug)]
@@ -40,12 +36,7 @@ impl<'a> TextureHeightmap<'a> {
 
         return Ok(TextureHeightmap {
             texture,
-            size: (texture.size.x() as u32, texture.size.y() as u32),
-
-            // Because we only support 1 format these are constants
-            pixel_bytes: 1,
-            chan_start: 0,
-            chan_end: 0
+            size: (texture.size.x() as u32 - 2, texture.size.y() as u32 - 2),
         });
     }
 }
@@ -56,23 +47,22 @@ impl<'a> HeightmapData for TextureHeightmap<'a>
         self.size
     }
 
-    fn sample(&self, x:u32, y:u32) -> Result<f32, SamplingError>
+    fn sample(&self, x:i32, y:i32) -> Result<f32, SamplingError>
     {
         // Sanity check that read coordinates are in bounds
-        if x >= self.size.0 || y > self.size.1 {
+        if (x >= self.size.0 as i32 + 1) || (y > self.size.1 as i32 + 1) || (y < -1) || (x < -1) {
             return Err(SamplingError::ReadOutOfBounds())
         }
 
-        // Work of the coordinate in the data array of the bytes for this pixel
-        let i = x * (self.pixel_bytes as u32)                // Offset by columns
-              + y * (self.pixel_bytes as u32) * self.size.1; // Offset by rows
+        // Pull the read back into the valid bounds
+        let x = x + 1;
+        let y = y + 1;
 
-        // Currently we only support one texture format (R8UNORM), so implementing this very simple...
+        // Work of the coordinate in the data array of the bytes for this pixel
+        let i = x                               // Offset by columns
+              + y * (self.size.1 as i32 + 2);   // Offset by rows
 
         // Get the byte
-        let data = self.texture.data[i as usize] as f32;
-
-        // Remap it to the right range
-        return Ok(data);
+        Ok(self.texture.data[i as usize] as f32)
     }
 }
