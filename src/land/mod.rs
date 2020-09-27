@@ -1,6 +1,5 @@
-mod land;
-
 mod heightmap;
 pub use heightmap::TextureHeightmap;
 
-pub use land::*;
+mod mesh;
+pub use mesh::texture_to_mesh;
