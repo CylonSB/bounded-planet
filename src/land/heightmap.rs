@@ -9,7 +9,7 @@ pub trait HeightmapData
 {
     /// Get the bounds of this heightmap (x, y).
     /// Sampled values must be in the [0, size-1] range.
-    fn size(&self) -> (u32, u32);
+    fn size(&self) -> (u16, u16);
 
     /// Sample a height from the heightmap. This allows reads one either side of the size, i.e. `-1` and `size().0` are valid sample positions
     fn sample(&self, x:i32, y:i32) -> Result<f32, SamplingError>;
@@ -18,7 +18,7 @@ pub trait HeightmapData
 /// Wrap a texture as a heightmap
 pub struct TextureHeightmap<'a> {
     pub texture: &'a Texture,
-    size: (u32, u32),
+    size: (u16, u16),
 }
 
 #[derive(Debug)]
@@ -36,14 +36,14 @@ impl<'a> TextureHeightmap<'a> {
 
         Ok(TextureHeightmap {
             texture,
-            size: (texture.size.x() as u32 - 2, texture.size.y() as u32 - 2),
+            size: (texture.size.x() as u16 - 2, texture.size.y() as u16 - 2),
         })
     }
 }
 
 impl<'a> HeightmapData for TextureHeightmap<'a>
 {
-    fn size(&self) -> (u32, u32) {
+    fn size(&self) -> (u16, u16) {
         self.size
     }
 
