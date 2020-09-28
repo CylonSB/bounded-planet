@@ -6,11 +6,11 @@ use super::heightmap::HeightmapData;
 
 struct QuadPatchGenerator {
     idx: usize,
-    values: [u32; 6]
+    values: [u16; 6]
 }
 
 impl QuadPatchGenerator {
-    fn new(base_idx: u32, width: u32) -> QuadPatchGenerator {
+    fn new(base_idx: u16, width: u16) -> QuadPatchGenerator {
         QuadPatchGenerator {
             idx: 0, 
             values: [
@@ -26,7 +26,7 @@ impl QuadPatchGenerator {
 }
 
 impl Iterator for QuadPatchGenerator {
-    type Item = u32;
+    type Item = u16;
 
     fn next(&mut self) -> Option<Self::Item> {
         let v = if self.idx >= 6 {
@@ -99,10 +99,8 @@ fn uvs(width: i32, height: i32) -> Vec<[f32; 2]> {
 }
 
 fn indices(width: u16, height: u16) -> Vec<u32> {
-    let width = u32::from(width);
-    let height = u32::from(height);
-    
     (0..height-1).cartesian_product(0..width-1)
         .flat_map(move |(z, x)| QuadPatchGenerator::new(x + z * width, width))
+        .map(u32::from)
         .collect::<Vec<_>>()
 }
