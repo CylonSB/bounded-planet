@@ -649,7 +649,6 @@ dependencies = [
  "futures-util",
  "itertools",
  "quinn",
- "rayon",
  "rmp-serde",
  "rustls",
  "serde",
