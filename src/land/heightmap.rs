@@ -50,7 +50,7 @@ impl<'a> HeightmapData for TextureHeightmap<'a>
     fn sample(&self, x:i32, y:i32) -> Result<f32, SamplingError>
     {
         // Sanity check that read coordinates are in bounds
-        if (x > self.size.0 as i32) || (y > self.size.1 as i32) || (y < -1) || (x < -1) {
+        if (x > i32::from(self.size.0)) || (y > i32::from(self.size.1)) || (y < -1) || (x < -1) {
             return Err(SamplingError::ReadOutOfBounds())
         }
 
@@ -60,9 +60,9 @@ impl<'a> HeightmapData for TextureHeightmap<'a>
 
         // Work of the coordinate in the data array of the bytes for this pixel
         let i = x                               // Offset by columns
-              + y * (self.size.1 as i32 + 2);   // Offset by rows
+              + y * (i32::from(self.size.1) + 2);   // Offset by rows
 
         // Get the byte
-        Ok(self.texture.data[i as usize] as f32)
+        Ok(f32::from(self.texture.data[i as usize]))
     }
 }

@@ -44,12 +44,13 @@ impl Iterator for QuadPatchGenerator {
 pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::Error>>
     where T: HeightmapData
 {
-    let width = land_texture.size().0 as i32;
-    let height = land_texture.size().1 as i32;
+
+    let width = i32::from(land_texture.size().0);
+    let height = i32::from(land_texture.size().1);
 
     // Define a helper to sample the underlying data
     let sample = |x, z| {
-        land_texture.sample(x, z).expect("Failed to sample heightmap") as f32 / 16.0
+        land_texture.sample(x, z).expect("Failed to sample heightmap") / 16.0
     };
 
     // Generate positions
@@ -85,7 +86,7 @@ pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::
             VertexAttribute::normal(normals),
             VertexAttribute::uv(uvs(width, height)),
         ],
-        indices: Some(indices(width, height)),
+        indices: Some(indices(land_texture.size().0, land_texture.size().1)),
     };
 
     Ok(land_mesh)
@@ -97,9 +98,9 @@ fn uvs(width: i32, height: i32) -> Vec<[f32; 2]> {
         .collect::<Vec<_>>()
 }
 
-fn indices(width: i32, height: i32) -> Vec<u32> {
-    let width = width as u32;
-    let height = height as u32;
+fn indices(width: u16, height: u16) -> Vec<u32> {
+    let width = u32::from(width);
+    let height = u32::from(height);
     
     (0..height-1).cartesian_product(0..width-1)
         .flat_map(move |(z, x)| QuadPatchGenerator::new(x + z * width, width))
