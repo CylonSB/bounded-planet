@@ -4,12 +4,14 @@ use itertools::Itertools;
 
 use super::heightmap::HeightmapData;
 
+/// Iterator which generates a quad (two triangles) with the top left corner at a given idnex
 struct QuadPatchGenerator {
     idx: usize,
     values: [u16; 6]
 }
 
 impl QuadPatchGenerator {
+    /// Create a new quad patch generator for a grid with a given width, starting at base_idx
     fn new(base_idx: u16, width: u16) -> QuadPatchGenerator {
         QuadPatchGenerator {
             idx: 0, 
@@ -25,6 +27,7 @@ impl QuadPatchGenerator {
     }
 }
 
+/// Return the 6 indices for this quad
 impl Iterator for QuadPatchGenerator {
     type Item = u16;
 
