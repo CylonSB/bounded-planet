@@ -71,7 +71,7 @@ fn setup(
         mesh: meshes.add(land_mesh),
         material: materials.add(StandardMaterial {
             albedo_texture: Some(land_texture_top_handle),
-            shaded: false,
+            shaded: true,
             ..Default::default()
         }),
         translation: Translation::new(4.0, 1.5, 4.0),
