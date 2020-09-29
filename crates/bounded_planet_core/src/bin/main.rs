@@ -23,6 +23,10 @@ struct MoveCam {
 }
 
 fn main() {
+
+    let path = std::env::current_dir().unwrap();
+    println!("The current directory is {}", path.display());
+
     App::build()
         .init_resource::<MoveCam>()
         .add_resource(Msaa { samples: 4 })
@@ -53,15 +57,15 @@ fn setup(
     mut sounds: ResMut<Assets<AudioSource>>,
 ) {
     let land_texture_handle = asset_server
-        .load_sync(&mut textures, "src/media/CoveWorldtest.png")
+        .load_sync(&mut textures, "content/textures/CoveWorldtest.png")
         .expect("Failed to load CoveWorld.png");
 
     let land_texture_top_handle = asset_server
-        .load_sync(&mut textures, "src/media/CoveWorldTop.png")
+        .load_sync(&mut textures, "content/textures/CoveWorldTop.png")
         .expect("Failed to load CoveWorldTop.png");
 
     asset_server
-        .load_sync(&mut sounds, "src/media/test_sound.mp3")
+        .load_sync(&mut sounds, "content/textures/test_sound.mp3")
         .expect("Failed to load test_sound.mp3");
 
     let wrap = TextureHeightmap::new(textures.get(&land_texture_handle).expect("Couldn't get texture")).expect("Couldn't wrap texture");
