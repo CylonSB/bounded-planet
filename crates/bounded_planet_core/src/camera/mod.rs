@@ -164,7 +164,7 @@ impl CameraBPAction {
 /// The universal geometry that the camera moves upon.
 ///
 /// Origin fields are expected to be wrt. the origin used by [`CameraBP`]s.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum UniversalGeometry {
     Plane { origin: Vec3, normal: Vec3 },
 }
@@ -202,7 +202,7 @@ impl UniversalGeometry {
 /// A private newtype of Universal Geometry, that satisfies some invariants:
 /// 1) `self.0` is normalized.
 /// 2) If `self.0` is a plane, then its normal is a unit vector.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 struct InternalUG(UniversalGeometry);
 
 impl From<UniversalGeometry> for InternalUG {
