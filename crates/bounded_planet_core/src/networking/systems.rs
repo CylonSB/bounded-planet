@@ -1,16 +1,20 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use bevy::prelude::{Commands, Entity, EventReader, Events, ResMut};
 use quinn::{crypto::rustls::TlsSession, generic::{RecvStream, SendStream}};
 use tokio::{stream::StreamExt, sync::mpsc::UnboundedReceiver, sync::mpsc::UnboundedSender, sync::mpsc::unbounded_channel};
 use tracing::{error, info, warn};
 
-use super::{components::Connection, events::ReceiveEvent, events::SendEvent, id::ConnectionId, id::StreamId, packets::Packet, streams::BoundedPlanetRecvStream, streams::BoundedPlanetSendStream};
+use super::{components::Connection, events::{ReceiveEvent, NetworkError}, events::SendEvent, id::ConnectionId, id::StreamId, packets::Packet, streams::BoundedPlanetRecvStream, streams::BoundedPlanetSendStream};
 
 /// Internal state of the network session system
 pub struct SessionEventListenerState {
     /// Map from ConnectionID => StreamId => StreamSender
-    pub stream_senders: HashMap<ConnectionId, HashMap<StreamId, UnboundedSender<Packet>>>,
+    pub stream_senders: HashMap<ConnectionId, HashMap<StreamId, UnboundedSender<Arc<Packet>>>>,
+
+    /// MPSC sender for the accompanying event_receiver
+    pub event_sender: UnboundedSender<ReceiveEvent>,
 
     /// MPSC which receives all events from the network
     pub event_receiver: UnboundedReceiver<ReceiveEvent>,
@@ -114,9 +118,14 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
                     .get(&stream_id);
 
                 if let Some(sender) = sender {
-                    if let Err(e) = sender.send(data.to_owned()) {
-                        //TODO(#29): expose these errors somehow once we decide exactly how network errors will work
-                        error!("Send Error: {:?}", e);
+                    if let Err(e) = sender.send(Arc::clone(data)) {
+                        session.event_sender.send(ReceiveEvent::NetworkError(
+                            NetworkError::StreamSenderError {
+                                connection_id: *connection_id,
+                                stream_id: *stream_id,
+                                failed_packet: e.0
+                            }
+                        )).expect("Failed to send error event!");
                     }
                 } else {
                     error!(
@@ -133,15 +142,21 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
 pub async fn handle_connection(
     conn: quinn::Connecting,
     event_sender: UnboundedSender<ReceiveEvent>,
-) -> Result<(), ()> {
+) {
     // Generate a unique ID for this connection
     let guid = ConnectionId::new();
     info!("connection incoming: {:?}", guid);
 
     // Wait for connection to finish connecting
-    let quinn::NewConnection { mut bi_streams, .. } = conn
-        .await
-        .map_err(|e| error!("Connection Error: {:?}", e))?;
+    let quinn::NewConnection { mut bi_streams, .. } = match conn.await {
+        Ok(connection) => connection,
+        Err(e) => {
+            event_sender.send(ReceiveEvent::NetworkError(
+                NetworkError::ConnectionError(e)
+            )).expect("Failed to send network event");
+            return;
+        }
+    };
 
     // Send an intial event indicating that this connection opened
     event_sender
@@ -152,7 +167,12 @@ pub async fn handle_connection(
     while let Some(stream) = bi_streams.next().await {
         match stream {
             Err(quinn::ConnectionError::ApplicationClosed { .. }) => break,
-            Err(e) => { error!("Connection error: {:?}", e); break; },
+            Err(e) => {
+                event_sender.send(ReceiveEvent::NetworkError(
+                    NetworkError::ConnectionError(e)
+                )).expect("Failed to send network event");
+                break;
+            },
             Ok((send, recv)) => {
                 tokio::spawn(handle_stream(guid, send, recv, event_sender.clone()));
             }
@@ -163,8 +183,6 @@ pub async fn handle_connection(
     event_sender
         .send(ReceiveEvent::Disconnected(guid))
         .expect("Failed to send network event");
-
-    Ok(())
 }
 
 /// Handle all the work of a specific stream
@@ -198,11 +216,11 @@ async fn handle_stream(
         connection_id,
         stream_id,
         stream_recv,
-        event_sender,
+        event_sender.clone(),
     ));
 
     // Spawn a task which pulls messages from the ECS and sends them to this stream
-    tokio::spawn(send_to_stream(stream_send, recv));
+    tokio::spawn(send_to_stream(connection_id, stream_id, stream_send, recv, event_sender));
 }
 
 /// Pull packets from socket and push into an mpsc
@@ -222,23 +240,36 @@ async fn recv_from_stream(
                 stream_id,
                 data: pkt,
             }),
-            Err(err) => event_sender.send(ReceiveEvent::ReceiveError {
-                connection_id,
-                stream_id,
-                err,
-            }),
+            Err(err) => event_sender.send(ReceiveEvent::NetworkError(
+                NetworkError::ReceiveError {
+                    connection_id,
+                    stream_id,
+                    err,
+                }
+            )),
         };
         se.expect("Failed to send event");
     }
 }
 
 /// Pull packets from an mpsc and send them to the given stream
-async fn send_to_stream(send: SendStream<TlsSession>, mut recv: UnboundedReceiver<Packet>) {
+async fn send_to_stream(
+    connection_id: ConnectionId,
+    stream_id: StreamId,
+    send: SendStream<TlsSession>,
+    mut recv: UnboundedReceiver<Arc<Packet>>,
+    event_sender: UnboundedSender<ReceiveEvent>
+) {
     let mut send = BoundedPlanetSendStream::new(send);
     while let Some(pkt) = recv.recv().await {
-        if let Err(e) = send.send_packet(&pkt).await {
-            //TODO(#29): expose this error in a more useful way 
-            error!("Send Error: {:?}", e);
+        if let Err(err) = send.send_packet(&pkt).await {
+            event_sender.send(ReceiveEvent::NetworkError(
+                NetworkError::SendError {
+                    connection_id,
+                    stream_id,
+                    err,
+                }
+            )).expect("Failed to send error event!");
         }
     }
 }
