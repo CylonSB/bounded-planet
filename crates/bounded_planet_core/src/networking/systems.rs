@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
+// TODO(#43) @martindevans unroll dependencies
 use bevy::prelude::{Commands, Entity, EventReader, Events, ResMut};
 use quinn::{crypto::rustls::TlsSession, generic::{RecvStream, SendStream}};
 use tokio::{stream::StreamExt, sync::mpsc::UnboundedReceiver, sync::mpsc::UnboundedSender, sync::mpsc::unbounded_channel};
@@ -11,7 +11,7 @@ use super::{components::Connection, events::{ReceiveEvent, NetworkError}, events
 /// Internal state of the network session system
 pub struct SessionEventListenerState {
     /// Map from ConnectionID => StreamId => StreamSender
-    pub stream_senders: HashMap<ConnectionId, HashMap<StreamId, UnboundedSender<Arc<Packet>>>>,
+    pub stream_senders: HashMap<ConnectionId, HashMap<StreamId, UnboundedSender<Packet>>>,
 
     /// MPSC sender for the accompanying event_receiver
     pub event_sender: UnboundedSender<ReceiveEvent>,
@@ -106,23 +106,23 @@ pub fn receive_net_events(
 }
 
 /// Take ECS events and forward them to MPSCs to be sent over the network
-pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_events: ResMut<Events<SendEvent>>) {
+pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, mut send_events: ResMut<Events<SendEvent>>) {
     // Publish packets ready to send to appropriate MPSC channels
-    for send in session.send_event_reader.iter(&send_events) {
+    for send in send_events.drain() {
         match send {
             SendEvent::SendPacket { connection_id, stream_id, data } => {
                 let sender = session
                     .stream_senders
-                    .entry(*connection_id)
+                    .entry(connection_id)
                     .or_default()
                     .get(&stream_id);
 
                 if let Some(sender) = sender {
-                    if let Err(e) = sender.send(Arc::clone(data)) {
+                    if let Err(e) = sender.send(data) {
                         session.event_sender.send(ReceiveEvent::NetworkError(
                             NetworkError::StreamSenderError {
-                                connection_id: *connection_id,
-                                stream_id: *stream_id,
+                                connection_id,
+                                stream_id,
                                 failed_packet: e.0
                             }
                         )).expect("Failed to send error event!");
@@ -257,7 +257,7 @@ async fn send_to_stream(
     connection_id: ConnectionId,
     stream_id: StreamId,
     send: SendStream<TlsSession>,
-    mut recv: UnboundedReceiver<Arc<Packet>>,
+    mut recv: UnboundedReceiver<Packet>,
     event_sender: UnboundedSender<ReceiveEvent>
 ) {
     let mut send = BoundedPlanetSendStream::new(send);

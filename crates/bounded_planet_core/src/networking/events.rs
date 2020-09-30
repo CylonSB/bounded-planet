@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::networking::{id::ConnectionId, id::StreamId, packets::Packet};
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -30,7 +28,7 @@ pub enum NetworkError {
     StreamSenderError {
         connection_id: ConnectionId,
         stream_id: StreamId,
-        failed_packet: Arc<Packet>,
+        failed_packet: Packet,
     },
 
     /// An error occurred in quinn while attempting to connect
@@ -49,7 +47,7 @@ pub enum ReceiveEvent {
     OpenedStream {
         connection_id: ConnectionId,
         stream_id: StreamId,
-        sender: UnboundedSender<Arc<Packet>>,
+        sender: UnboundedSender<Packet>,
     },
 
     /// A packet has arrived in a stream
@@ -75,7 +73,7 @@ pub enum SendEvent {
     SendPacket {
         connection_id: ConnectionId,
         stream_id: StreamId,
-        data: Arc<Packet>,
+        data: Packet,
     },
 
     //todo(#38): Add a variant requesting a new stream
