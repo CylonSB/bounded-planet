@@ -54,24 +54,24 @@ impl Default for CameraBPConfig {
 }
 
 impl CameraBPConfig {
-    fn get_camspace_vec3_trans(&self, act: CameraBPAction) -> Option<Translation> {
+    fn get_camspace_vec3_trans(&self, act: CameraBPAction) -> Option<Vec3> {
         match act {
-            CameraBPAction::MoveLeft(w) => Some(Translation::new(
+            CameraBPAction::MoveLeft(w) => Some(Vec3::new(
                 w.unwrap_or(1.0) * self.left_weight,
                 0.0,
                 0.0,
             )),
-            CameraBPAction::MoveRight(w) => Some(Translation::new(
+            CameraBPAction::MoveRight(w) => Some(Vec3::new(
                 w.unwrap_or(1.0) * self.right_weight,
                 0.0,
                 0.0,
             )),
-            CameraBPAction::MoveForward(w) => Some(Translation::new(
+            CameraBPAction::MoveForward(w) => Some(Vec3::new(
                 0.0,
                 0.0,
                 w.unwrap_or(1.0) * self.forward_weight,
             )),
-            CameraBPAction::MoveBack(w) => Some(Translation::new(
+            CameraBPAction::MoveBack(w) => Some(Vec3::new(
                 0.0,
                 0.0,
                 w.unwrap_or(1.0) * self.back_weight,
@@ -166,13 +166,13 @@ impl CameraBPAction {
 /// Origin fields are expected to be wrt. the origin used by [`CameraBP`]s.
 #[derive(Copy, Clone)]
 pub enum UniversalGeometry {
-    Plane { origin: Translation, normal: Vec3 },
+    Plane { origin: Vec3, normal: Vec3 },
 }
 
 impl Default for UniversalGeometry {
     fn default() -> Self {
         UniversalGeometry::Plane {
-            origin: Translation::identity(),
+            origin: Vec3::new(0.0, 0.0, 0.0),
             normal: Vec3::new(0.0, 1.0, 0.0),
         }
     }
@@ -197,43 +197,6 @@ impl UniversalGeometry {
             },
         }
     }
-
-    /// Get the new position and rotation resulting from the original position
-    /// `p`, original rotation `r`, and movement `s` about `self` (relative to
-    /// `r`).
-    fn trans(&self, p: Vec3, r: Quat, s: Vec3, scale: f32) -> (Vec3, Quat) {
-        fn plane(_o: Vec3, n: Vec3, p: Vec3, r: Quat, s: Vec3, scale: f32) -> (Vec3, Quat) {
-            let mut delta = r.mul_vec3(s);
-            delta -= n * delta.dot(n);
-
-            // when delta is zero, delta.normalize() is (NaN, NaN, NaN), which causes camera to die
-            if delta != Vec3::new(0.0, 0.0, 0.0) {
-                delta = delta.normalize() * s.length(); // unscaled delta
-                delta *= scale * p.dot(n).abs(); // scale delta by dist
-            }
-
-            (delta, Quat::identity())
-        }
-
-        match self {
-            UniversalGeometry::Plane { origin, normal } => plane(origin.0, *normal, p, r, s, scale),
-        }
-    }
-
-    /// Get the new position and rotation from scrolling resulting from the
-    /// original position `o`, original rotation `r`, and scroll weight `s`.
-    fn zoom(&self, p: Vec3, r: Quat, s: f32, scale: f32) -> (Vec3, Quat) {
-        fn plane(_o: Vec3, n: Vec3, p: Vec3, r: Quat, s: f32, scale: f32) -> (Vec3, Quat) {
-            let mut delta = (-r).mul_vec3(Vec3::new(0.0, 0.0, s)); // unscaled delta
-            delta *= scale * p.dot(n).abs(); // scale delta by dist
-
-            (delta, Quat::identity())
-        }
-
-        match self {
-            UniversalGeometry::Plane { origin, normal } => plane(origin.0, *normal, p, r, s, scale),
-        }
-    }
 }
 
 /// A private newtype of Universal Geometry, that satisfies some invariants:
@@ -248,13 +211,94 @@ impl From<UniversalGeometry> for InternalUG {
     }
 }
 
-/// A plugin that adds a [`CameraBP`] and adds systems to control it.
+impl InternalUG {
+    /// Get the new transformation resulting from the original [`Transform`]
+    /// `ot` and movement `s` in terms of [`InternalUG`] space.
+    fn noparent_trans(&self, ot: Transform, s: Vec3, scale: f32) -> Transform {
+        fn plane(_o: Vec3, n: Vec3, mut ot: Transform, s: Vec3, scale: f32) -> Transform {
+            let mut delta = ot.rotation().mul_vec3(s);
+            delta -= n * delta.dot(n);
+
+            // when delta is zero, delta.normalize() is (NaN, NaN, NaN), which causes camera to die
+            if delta != Vec3::new(0.0, 0.0, 0.0) {
+                delta = delta.normalize() * s.length(); // unscaled delta
+                delta *= scale * ot.translation().dot(n).abs(); // scale delta by dist
+            }
+
+            let oti = ot.value_mut();
+            *oti = Mat4::from_translation(delta) * *oti;
+            ot
+        }
+
+        match self.0 {
+            UniversalGeometry::Plane { origin, normal } => plane(origin, normal, ot, s, scale),
+        }
+    }
+
+    /// Get the new transformation resulting from the original [`Transform`]
+    /// `ot` and scroll weight `s`.
+    fn noparent_zoom(&self, ot: Transform, s: f32, scale: f32) -> Transform {
+        fn plane(_o: Vec3, n: Vec3, mut ot: Transform, s: f32, scale: f32) -> Transform {
+            let mut delta = (-ot.rotation()).mul_vec3(Vec3::new(0.0, 0.0, s)); // unscaled delta
+            delta *= scale * ot.translation().dot(n).abs(); // scale delta by dist
+
+            let oti = ot.value_mut();
+            *oti = Mat4::from_translation(delta) * *oti;
+            ot
+        }
+
+        match self.0 {
+            UniversalGeometry::Plane { origin, normal } => plane(origin, normal, ot, s, scale),
+        }
+    }
+
+    /// Return the `(parent, camera)` new transformations resulting from the
+    /// original [`Transform`]s `opt` and `oct` of the parent and camera
+    /// respectively and movement `s` in terms of [`InternalUG`] space.
+    fn parent_trans(
+        &self,
+        opt: Transform,
+        oct: Transform,
+        s: Vec3,
+        scale: f32
+    ) -> (Transform, Transform) {
+        match self.0 {
+            UniversalGeometry::Plane {..} => {
+                let mut out = self.noparent_trans(Transform::new(*oct.value()), s, scale);
+                let outi = out.value_mut();
+                // insert appropriate logic here
+                (out, oct)
+            }
+        }
+    }
+
+    /// Return the `(parent, camera)` new transformations resulting from the
+    /// original [`Transform`]s `opt` and `oct` of the parent and camera
+    /// respectively and and scroll weight `s`.
+    fn parent_zoom(
+        &self,
+        opt: Transform,
+        oct: Transform,
+        s: f32,
+        scale: f32
+    ) -> (Transform, Transform) {
+        match self.0 {
+            UniversalGeometry::Plane {..} => {
+                let mut out = self.noparent_zoom(Transform::new(*oct.value()), s, scale);
+                let outi = out.value_mut();
+                // insert appropriate logic here
+                (opt, out)
+            }
+        }
+    }
+}
+
+/// A plugin that adds an [`InternalUG`] and adds systems to control cameras
+/// relative to it.
 #[derive(Default)]
 pub struct CameraBPPlugin {
     /// The geometry that the camera follows.
     pub geo: UniversalGeometry,
-    /// Whether the camera is locked (ie, can't be moved by player actions).
-    pub locked: bool,
 }
 
 impl Plugin for CameraBPPlugin {
@@ -271,25 +315,23 @@ impl Plugin for CameraBPPlugin {
 fn perform_parentless_camera_actions(
     acts: Res<Events<CameraBPAction>>,
     res: Res<InternalUG>,
-    mut cams: Query<Without<Parent, (&CameraBPConfig, &mut Translation, &mut Rotation)>>,
+    mut cams: Query<Without<Parent, (&CameraBPConfig, &mut Transform)>>,
 ) {
     let actions = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
 
-    for (bp, mut cam_t, mut cam_r) in cams.iter().into_iter() {
+    for (bp, mut cam_t) in cams.iter().into_iter() {
         if bp.locked {
             continue;
         }
 
         for act in &actions {
-            if let Some(t) = bp.get_camspace_vec3_trans(*act) {
-                let (t, r) = res.0.trans(cam_t.0, cam_r.0, t.0, bp.trans_scale);
-                cam_t.0 += t;
-                cam_r.0 *= r;
+            *cam_t = if let Some(t) = bp.get_camspace_vec3_trans(*act) {
+                res.noparent_trans(*cam_t, t, bp.trans_scale)
             } else if let Some(w) = bp.get_camspace_vec3_zoom(*act) {
-                let (t, r) = res.0.zoom(cam_t.0, cam_r.0, w, bp.zoom_scale);
-                cam_t.0 += t;
-                cam_r.0 *= r;
-            }
+                res.noparent_zoom(*cam_t, w, bp.trans_scale)
+            } else {
+                continue;
+            };
         }
     }
 }
@@ -300,12 +342,12 @@ fn perform_parented_camera_actions(
     acts: Res<Events<CameraBPAction>>,
     res: Res<InternalUG>,
     parents: Query<&mut Transform>,
-    mut cams: Query<(&Parent, &CameraBPConfig, &mut Translation, &mut Rotation)>,
+    mut cams: Query<(&Parent, &CameraBPConfig, &mut Transform)>,
 ) {
     let actions = CameraBPAction::dedup_signals(acts.get_reader().iter(&acts).copied());
 
-    for (parent, bp, mut cam_t, mut cam_r) in cams.iter().into_iter() {
-        let mut par_tf = if bp.locked {
+    for (parent, bp, mut cam_t) in cams.iter().into_iter() {
+        let mut par_t = if bp.locked {
             continue;
         } else if let Ok(tf) = parents.get_mut::<Transform>(parent.0) {
             tf
@@ -314,21 +356,16 @@ fn perform_parented_camera_actions(
         };
 
         for act in &actions {
-            if let Some(t) = bp.get_camspace_vec3_trans(*act) {
-                let (t, r) = res.0.trans(
-                    Vec3::from(par_tf.value.w_axis().truncate()) - cam_t.0,
-                    cam_r.0,
-                    t.0,
-                    bp.trans_scale,
-                );
-
-                par_tf.value = par_tf.value * Mat4::from_translation(t);
-                par_tf.value = par_tf.value * Mat4::from_quat(r);
+            let (par_t2, cam_t2) = if let Some(t) = bp.get_camspace_vec3_trans(*act) {
+                res.parent_trans(*par_t, *cam_t, t, bp.trans_scale)
             } else if let Some(w) = bp.get_camspace_vec3_zoom(*act) {
-                let (t, r) = res.0.zoom(cam_t.0, cam_r.0, w, bp.zoom_scale);
-                cam_t.0 += t;
-                cam_r.0 *= r;
-            }
+                res.parent_zoom(*par_t, *cam_t, w, bp.trans_scale)
+            } else {
+                continue;
+            };
+
+            *par_t = par_t2;
+            *cam_t = cam_t2;
         }
     }
 }

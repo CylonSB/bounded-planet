@@ -7,8 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = "0.1.3"
-bevy_rapier3d = "0.1.1"
+bevy = "0.2.1"
+bevy_rapier3d = "0.2.0"
 tokio = { version = "0.2.22", features = ["full"] }
 quinn = "0.6.1"
 structopt = "0.3.17"
@@ -20,12 +20,12 @@ url = "2.1.1"
 serde = "1.0.116"
 rmp-serde = "0.14.4"
 deflate = "0.8.6"
-
 futures-util = "0.3.5"
 uuid = { version = "0.8", features = ["v4"] }
 itertools = "0.9.0"
 
-# rustls isn't directly needed, it's a dependency of `quinn`. The `dangerous_configuration` feature is required to bypass security in the networking.
-# Make sure to recheck this versaion number when updating quinn!
+# rustls isn't directly needed, it's a dependency of `quinn`. The
+# `dangerous_configuration` feature is required to bypass security in the
+# networking. Make sure to recheck this versaion number when updating quinn!
 rustls = { version = "0.17.0", features = [ "dangerous_configuration" ] }
 webpki = { version = "0.21.3" }
