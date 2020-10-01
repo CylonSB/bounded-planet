@@ -7,15 +7,12 @@ Sections of map have significantly different features.
 ## Procedural Generation
 Map is automatically generated (when a world is created).
 ## Procedural game world
-Game world such as terrain, trees, etc can be generated
+Game world such as terrain, trees, etc can be generated.
 ## Procedural game content
-Game content such as tech tree, etc can be generated
+Game content such as tech tree, etc can be generated.
 
 ## AI Rules Of Engagement
 AI units can have rules that change what actions they take.
-
-## Logistics
-Stuff must be physically moved around the world.
 
 ## Matchmaking
 Players are added to games with other players who have a similar skill set.
