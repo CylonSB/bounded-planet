@@ -1,5 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+/// Uniquely identifies a single unidirectional stream of data within a single network connection
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
+pub enum StreamType {
+    TextChat,
+    Ping,
+}
+
 /// Enum of all packets in the network protocol
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Packet {
