@@ -28,7 +28,10 @@ pub struct Ping {
 impl Default for Ping {
     fn default() -> Self {
         Ping {
-            timestamp: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).expect("System time is before unix epoch").as_millis() as u64
+            timestamp: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .expect("System time is before unix epoch")
+                .as_millis() as u64
         }
     }
 }

@@ -4,7 +4,11 @@ use structopt::StructOpt;
 use bevy::prelude::*;
 use bevy::app::ScheduleRunnerPlugin;
 
-use bounded_planet::networking::{events::{ReceiveEvent, SendEvent}, packets::{Packet, Ping, Pong, StreamType}, systems::NetEventLoggerState, systems::log_net_events};
+use bounded_planet::networking::{
+    systems::{NetEventLoggerState, log_net_events},
+    events::{ReceiveEvent, SendEvent},
+    packets::{Packet, Ping, Pong, StreamType}
+};
 use tracing::{Level, info};
 use url::Url;
 
@@ -67,7 +71,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
         accept_any_cert: options.accept_any_cert
     });
 
-    app.add_resource(PingResponderState::default());
+    app.init_resource::<PingResponderState>();
     app.add_system(respond_to_pings.system());
 
     app.add_resource(NetEventLoggerState::default());
@@ -91,7 +95,11 @@ pub struct PingResponderState {
 }
    
 
-fn respond_to_pings(mut state: ResMut<PingResponderState>, receiver: ResMut<Events<ReceiveEvent>>, mut sender: ResMut<Events<SendEvent>>) {
+fn respond_to_pings(
+    mut state: ResMut<PingResponderState>,
+    receiver: ResMut<Events<ReceiveEvent>>,
+    mut sender: ResMut<Events<SendEvent>>,
+) {
     for evt in state.event_reader.iter(&receiver) {
         if let ReceiveEvent::ReceivedPacket { ref connection, data } = evt {
             if let Packet::Ping(Ping { timestamp }) = **data {

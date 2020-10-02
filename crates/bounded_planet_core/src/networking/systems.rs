@@ -169,8 +169,11 @@ pub async fn handle_connection(
     tokio::spawn(send_to_streams(cid, connection, recv, event_sender));
 }
 
-async fn handle_incoming_streams(mut uni_streams: IncomingUniStreams, event_sender: UnboundedSender<ReceiveEvent>, id: ConnectionId)
-{
+async fn handle_incoming_streams(
+    mut uni_streams: IncomingUniStreams,
+    event_sender: UnboundedSender<ReceiveEvent>,
+    id: ConnectionId
+) {
     // Keep getting events from the connection until it closes
     while let Some(stream) = uni_streams.next().await {
         match stream {
@@ -224,7 +227,12 @@ async fn handle_incoming_stream(
     }
 }
 
-async fn send_to_streams(connection_id: ConnectionId, mut conn: quinn::Connection, mut recv: UnboundedReceiver<(StreamType, Arc<Packet>)>, event_sender: UnboundedSender<ReceiveEvent>) {
+async fn send_to_streams(
+    connection_id: ConnectionId,
+    mut conn: quinn::Connection,
+    mut recv: UnboundedReceiver<(StreamType, Arc<Packet>)>,
+    event_sender: UnboundedSender<ReceiveEvent>
+) {
 
     // Create a list of open streams. When a request comes in to send over a non-existant stream open it and store it here.
     // Streams are never closed. This is fine since there are a fixed number fo streams (as defined in the StreamType enum).

@@ -6,7 +6,12 @@ use bevy::prelude::*;
 use structopt::StructOpt;
 use tracing::{Level, info, error};
 
-use bounded_planet::networking::{components::Connection, events::ReceiveEvent, events::SendEvent, packets::{Packet, Ping, Pong, StreamType}, systems::NetEventLoggerState, systems::log_net_events};
+use bounded_planet::networking::{
+    components::Connection,
+    systems::{NetEventLoggerState, log_net_events},
+    events::{ReceiveEvent, SendEvent},
+    packets::{Packet, Ping, Pong, StreamType},
+};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "server")]
