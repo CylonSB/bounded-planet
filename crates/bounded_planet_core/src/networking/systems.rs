@@ -3,10 +3,19 @@ use std::sync::Arc;
 
 use bevy::prelude::{Commands, Entity, EventReader, Events, ResMut};
 use quinn::{ConnectionError, IncomingUniStreams, crypto::rustls::TlsSession, generic::RecvStream};
-use tokio::{stream::StreamExt, sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel}};
+use tokio::{
+    stream::StreamExt,
+    sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel}
+};
 use tracing::{error, info, warn};
 
-use super::{components::Connection, events::{NetworkError, ReceiveEvent, SendEvent}, id::ConnectionId, packets::{Packet, StreamType}, streams::{BoundedPlanetRecvStream, BoundedPlanetSendStream}};
+use super::{
+    components::Connection,
+    events::{NetworkError, ReceiveEvent, SendEvent},
+    id::ConnectionId,
+    packets::{Packet, StreamType},
+    streams::{BoundedPlanetRecvStream, BoundedPlanetSendStream}
+};
 
 #[derive(Default)]
 pub struct NetEventLoggerState {
@@ -113,13 +122,13 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
     // Publish packets ready to send to appropriate MPSC channels
     for send in session.send_event_reader.iter(&send_events) {
         match send {
-            SendEvent::SendPacket { connection: connection_id, stream: stream_type, data } => {
-                if let Some(sender) = session.stream_senders.get(&connection_id) {
-                    if let Err(e) = sender.send((*stream_type, Arc::clone(data))) {
+            SendEvent::SendPacket { connection, stream, data } => {
+                if let Some(sender) = session.stream_senders.get(&connection) {
+                    if let Err(e) = sender.send((*stream, Arc::clone(data))) {
                         session.event_sender.send(ReceiveEvent::NetworkError(
                             NetworkError::StreamSenderError {
-                                connection: *connection_id,
-                                stream: *stream_type,
+                                connection: *connection,
+                                stream: *stream,
                                 failed_packet: e.0.1
                             }
                         )).expect("Failed to send error event!");
@@ -127,7 +136,7 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
                         warn!("Failed to publish packet from ECS->MPSC");
                     }
                 } else {
-                    error!("Attempted to send to a non-existant connection: {:?}", connection_id);
+                    error!("Attempted to send to a non-existant connection: {:?}", connection);
                 }
             }
         }
@@ -185,7 +194,7 @@ async fn handle_incoming_streams(
                 break;
             },
             Ok(recv) => {
-                tokio::spawn(handle_incoming_stream(id, recv, event_sender.clone()));
+                tokio::spawn(read_from_stream(id, recv, event_sender.clone()));
             }
         };
     }
@@ -197,7 +206,7 @@ async fn handle_incoming_streams(
 }
 
 /// Handle all the work of a specific stream
-async fn handle_incoming_stream(
+async fn read_from_stream(
     connection_id: ConnectionId,
     stream_recv: RecvStream<TlsSession>,
     event_sender: UnboundedSender<ReceiveEvent>,

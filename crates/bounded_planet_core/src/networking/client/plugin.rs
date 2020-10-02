@@ -1,7 +1,11 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use bevy::prelude::{AppBuilder, Plugin, IntoQuerySystem};
-use quinn::{ClientConfigBuilder, crypto::rustls::TlsSession, generic::Connecting};
+use quinn::{
+    ClientConfigBuilder,
+    crypto::rustls::TlsSession,
+    generic::Connecting
+};
 use tokio::sync::mpsc::unbounded_channel;
 use url::Url;
 

@@ -30,7 +30,7 @@ impl<TSession: Session> BoundedPlanetSendStream<TSession> {
     pub async fn send_packet(&mut self, packet: &Packet) -> Result<(), SendError> {
         // Encode packet into messagepack format
         let bytes = rmp_serde::to_vec(&packet).map_err(SendError::EncodeError)?;
-        
+
         // Prefix with length (4 bytes, network order)
         let len_bytes = (bytes.len() as u32).to_be_bytes();
         self.send
