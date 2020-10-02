@@ -30,7 +30,7 @@ impl<TSession: Session> BoundedPlanetSendStream<TSession> {
     pub async fn send_packet(&mut self, packet: &Packet) -> Result<(), SendError> {
         // Encode packet into messagepack format
         let bytes = rmp_serde::to_vec(&packet).map_err(SendError::EncodeError)?;
-
+        
         // Prefix with length (4 bytes, network order)
         let len_bytes = (bytes.len() as u32).to_be_bytes();
         self.send
@@ -83,7 +83,7 @@ impl<TSession: Session> BoundedPlanetRecvStream<TSession> {
         let length_prefix = u32::from_be_bytes(length_prefix_buf);
 
         // Read that many bytes
-        let mut data = Vec::<u8>::with_capacity(length_prefix as usize);
+        let mut data = vec![0; length_prefix as usize];
         self.recv
             .read_exact(&mut data.as_mut_slice())
             .await

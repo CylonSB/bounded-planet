@@ -6,7 +6,25 @@ use quinn::{ConnectionError, IncomingUniStreams, crypto::rustls::TlsSession, gen
 use tokio::{stream::StreamExt, sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel}};
 use tracing::{error, info, warn};
 
-use super::{components::Connection, events::{NetworkError, ReceiveEvent, SendEvent}, id::{ConnectionId, StreamType}, packets::Packet, streams::{BoundedPlanetRecvStream, BoundedPlanetSendStream}};
+use super::{components::Connection, events::{NetworkError, ReceiveEvent, SendEvent}, id::ConnectionId, packets::{Packet, StreamType}, streams::{BoundedPlanetRecvStream, BoundedPlanetSendStream}};
+
+#[derive(Default)]
+pub struct NetEventLoggerState {
+    pub event_reader: EventReader<ReceiveEvent>,
+}
+
+pub fn log_net_events(mut state: ResMut<NetEventLoggerState>, receiver: ResMut<Events<ReceiveEvent>>) {
+    for evt in state.event_reader.iter(&receiver) {
+        match evt {
+            ReceiveEvent::Connected(cid, _) => info!("New Connection: {:?}", cid),
+            ReceiveEvent::Disconnected(cid) => info!("Disconnected: {:?}", cid),
+            ReceiveEvent::SocketClosed => warn!("Socket Closed"),
+            ReceiveEvent::NetworkError(err) => error!("Network Error: {:?}", err),
+
+            _ => {}
+        }
+    }
+}
 
 /// Internal state of the network session system
 pub struct SessionEventListenerState {
@@ -105,6 +123,8 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
                                 failed_packet: e.0.1
                             }
                         )).expect("Failed to send error event!");
+
+                        warn!("Failed to publish packet from ECS->MPSC");
                     }
                 } else {
                     error!("Attempted to send to a non-existant connection: {:?}", connection_id);
@@ -219,7 +239,6 @@ async fn send_to_streams(connection_id: ConnectionId, mut conn: quinn::Connectio
 
             // Send a packet through a stream
             Some((stream_type, pkt)) => {
-
                 // Find (or create) the sender for this stream
                 let sender = match get_stream_sender(&stream_type, &mut stream_lookup, &mut conn).await {
                     Ok(sender) => sender,
@@ -256,7 +275,9 @@ async fn get_stream_sender<'a>(
     let idx = *stream_type as usize;
 
     // Keep opening streams until the list of senders is large enough
-    stream_lookup.reserve(idx - stream_lookup.len() + 1);
+    if idx >= stream_lookup.len() {
+        stream_lookup.reserve(idx - stream_lookup.len() + 1);
+    }
     while idx >= stream_lookup.len() {
         stream_lookup.push(BoundedPlanetSendStream::new(conn.open_uni().await?));
     }

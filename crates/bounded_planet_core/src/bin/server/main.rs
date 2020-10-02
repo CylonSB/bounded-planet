@@ -1,12 +1,12 @@
-use std::{fs, net::SocketAddr, path::PathBuf};
+use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc, time::SystemTime};
 use std::time::Duration;
 
 use bevy::app::ScheduleRunnerPlugin;
 use bevy::prelude::*;
 use structopt::StructOpt;
-use tracing::{Level, info, error, warn};
+use tracing::{Level, info, error};
 
-use bounded_planet::networking::components::Connection;
+use bounded_planet::networking::{components::Connection, events::ReceiveEvent, events::SendEvent, packets::{Packet, Ping, Pong, StreamType}, systems::NetEventLoggerState, systems::log_net_events};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "server")]
@@ -27,7 +27,7 @@ struct Opt {
 fn main() {
     tracing::subscriber::set_global_default(
         tracing_subscriber::FmtSubscriber::builder()
-            .with_max_level(Level::TRACE)
+            .with_max_level(Level::DEBUG)
             .finish(),
     )
     .expect("Failed to configure logging");
@@ -59,7 +59,13 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
         addr: options.addr,
     });
 
-    app.add_system(log_connections.system());
+    app.add_system(send_pings.system());
+
+    app.add_resource(PongLoggerState::default());
+    app.add_system(log_pongs.system());
+
+    app.add_resource(NetEventLoggerState::default());
+    app.add_system(log_net_events.system());
 
     // Run it forever
     app.run();
@@ -92,6 +98,36 @@ fn get_certs(key_path: &PathBuf, cert_path: &PathBuf) -> Result<(quinn::PrivateK
     ))
 }
 
-fn log_connections(_conn: &Connection) {
-    warn!("Connection Entity Exists!");
+fn send_pings(mut sender: ResMut<Events<SendEvent>>, conn: &Connection) {
+    sender.send(SendEvent::SendPacket {
+        connection: conn.id,
+        stream: StreamType::PingPong,
+        data: Arc::new(
+            Packet::Ping(Ping::default())
+        ),
+    });
+}
+
+#[derive(Default)]
+pub struct PongLoggerState {
+    pub event_reader: EventReader<ReceiveEvent>,
+}
+
+fn log_pongs(mut state: ResMut<PongLoggerState>, receiver: ResMut<Events<ReceiveEvent>>) {
+    for evt in state.event_reader.iter(&receiver) {
+        if let ReceiveEvent::ReceivedPacket { data, .. } = evt {
+            if let Packet::Pong(Pong { timestamp }) = **data {
+                
+                let time_sent = SystemTime::UNIX_EPOCH.checked_add(
+                    Duration::from_millis(timestamp as u64)
+                ).expect("Overflowed SystemTime");
+
+                let time_now = SystemTime::now();
+
+                let latency = time_now.duration_since(time_sent);
+
+                info!("Received Pong. Latency {:?}", latency);
+            }
+        }
+    }
 }

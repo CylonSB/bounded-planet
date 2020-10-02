@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::networking::{id::ConnectionId, packets::Packet};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::{id::StreamType, streams::{RecvError, SendError}};
+use super::{packets::StreamType, streams::{RecvError, SendError}};
 
 use thiserror::Error;
 
