@@ -70,13 +70,13 @@ fn setup(
             ..Default::default()
         })
         // camera anchor
-        .spawn((Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),))
+        .spawn((Transform::from_translation(Vec3::new(0.0, 7.0, 0.0)), GlobalTransform::default()))
         // camera
         .with_children(|parent| {
             parent
                 .spawn(Camera3dComponents {
                     transform: Transform::from_translation_rotation(
-                        Vec3::new(0.0, 7.0, 0.0),
+                        Vec3::new(0.0, 1.0, 0.0),
                         Quat::from_rotation_ypr(0.3, -0.8, -0.2)
                     ),
                     ..Default::default()
@@ -158,8 +158,17 @@ fn use_or_update_action_cache(mcam: Res<MoveCam>, mut acts: ResMut<Events<Camera
     }
 }
 
-fn debug_camera_pos(mut cams: Query<With<CameraBPConfig, &Transform>>) {
-    for cam in cams.iter().into_iter() {
-        println!("Camera Position: {}\tCamera Rotation: {}", cam.translation(), cam.rotation())
+fn debug_camera_pos(
+    parents: Query<&mut Transform>,
+    mut cams: Query<(&Parent, &CameraBPConfig, &mut Transform)>,
+) {
+    for (par, _, cam_t) in cams.iter().into_iter() {
+        let par_t = if let Ok(t) = parents.get::<Transform>(par.0) {
+            t
+        } else {
+            continue
+        };
+
+        println!("Camera Position: {}\tParent Position: {}", cam_t.translation(), par_t.translation());
     }
 }
