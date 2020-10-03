@@ -4,9 +4,10 @@ These cards represents a promise from you to the audience about what they will e
 A world that lasts for a prolonged period of time, including while users are not logged in.
 
 ## MMO
-A large number of players
+A large number of players.
 
-<!-- Swap These two? We wouldn't make a turned based strategy to have more players -->
+## Logistics
+Stuff (including resources) must be physically moved around the world.
 
 ## RTS
 Players control and manipulate the military in real time, no turns.
