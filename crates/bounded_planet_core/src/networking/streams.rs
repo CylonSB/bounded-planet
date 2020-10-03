@@ -13,7 +13,6 @@ pub struct BoundedPlanetSendStream<T: Session> {
 
 #[derive(Debug)]
 pub enum SendError {
-
     /// Sending a packet failed due to a serialisation error
     EncodeError(rmp_serde::encode::Error),
 

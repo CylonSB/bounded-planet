@@ -242,7 +242,6 @@ async fn send_to_streams(
     mut recv: UnboundedReceiver<(StreamType, Arc<Packet>)>,
     event_sender: UnboundedSender<ReceiveEvent>
 ) {
-
     // Create a list of open streams. When a request comes in to send over a non-existant stream open it and store it here.
     // Streams are never closed. This is fine since there are a fixed number fo streams (as defined in the StreamType enum).
     let mut stream_lookup = Vec::new();
@@ -286,8 +285,7 @@ async fn get_stream_sender<'a>(
     stream_type: &StreamType,
     stream_lookup: &'a mut Vec<BoundedPlanetSendStream<TlsSession>>,
     conn: &mut quinn::Connection
-) -> Result<&'a mut BoundedPlanetSendStream<TlsSession>, ConnectionError>
-{
+) -> Result<&'a mut BoundedPlanetSendStream<TlsSession>, ConnectionError> {
     // Calculate the index of this sender simply as the enum variant index
     let idx = *stream_type as usize;
 

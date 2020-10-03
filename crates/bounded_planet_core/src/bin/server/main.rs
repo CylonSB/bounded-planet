@@ -80,7 +80,6 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
 
 /// Fetch certificates to use
 fn get_certs(key_path: &PathBuf, cert_path: &PathBuf) -> Result<(quinn::PrivateKey, quinn::CertificateChain), Box<dyn std::error::Error>> {
-
     info!("Loading Key: {:?}", key_path);
     let key = fs::read(key_path)?;
     let key = if key_path.extension().map_or(false, |x| x == "der") {

@@ -42,7 +42,6 @@ fn main() {
 
 #[tokio::main]
 async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
-
     tracing::subscriber::set_global_default(
         tracing_subscriber::FmtSubscriber::builder()
             .with_max_level(Level::DEBUG)
@@ -93,7 +92,6 @@ fn get_cert(cert_path: &PathBuf) -> Result<quinn::Certificate, Box<dyn std::erro
 pub struct PingResponderState {
     pub event_reader: EventReader<ReceiveEvent>,
 }
-   
 
 fn respond_to_pings(
     mut state: ResMut<PingResponderState>,

@@ -65,7 +65,6 @@ impl Plugin for Network {
 }
 
 fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::Certificate, accept_any_cert: bool) -> Result<Connecting<TlsSession>, Box<dyn std::error::Error>> {
-
     let mut client_config = ClientConfigBuilder::default();
     client_config.protocols(&[b"hq-29"]);
     
