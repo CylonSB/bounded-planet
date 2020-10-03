@@ -1,16 +1,14 @@
 use std::{fs, net::ToSocketAddrs, path::PathBuf, sync::Arc, time::Duration};
-
 use structopt::StructOpt;
 use bevy::prelude::*;
 use bevy::app::ScheduleRunnerPlugin;
-
+use url::Url;
+use tracing::{Level, info};
 use bounded_planet::networking::{
     systems::{NetEventLoggerState, log_net_events},
     events::{ReceiveEvent, SendEvent},
     packets::{Packet, Ping, Pong, StreamType}
 };
-use tracing::{Level, info};
-use url::Url;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "client")]

@@ -1,16 +1,15 @@
 use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc, time::SystemTime};
 use std::time::Duration;
-
 use bevy::app::ScheduleRunnerPlugin;
 use bevy::prelude::*;
 use structopt::StructOpt;
-use tracing::{Level, info, error};
-
+use tracing::{Level, info};
 use bounded_planet::networking::{
     components::Connection,
     systems::{NetEventLoggerState, log_net_events},
     events::{ReceiveEvent, SendEvent},
     packets::{Packet, Ping, Pong, StreamType},
+    server::plugin::Network as NetworkPlugin
 };
 
 #[derive(StructOpt, Debug)]
@@ -50,7 +49,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     )));
 
     let (key, cert) = get_certs(&options.key, &options.cert)?;
-    app.add_plugin(bounded_planet::networking::server::plugin::Network {
+    app.add_plugin(NetworkPlugin {
         certificate: cert,
         private_key: key,
         addr: options.addr,
