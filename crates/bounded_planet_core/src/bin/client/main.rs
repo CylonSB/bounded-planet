@@ -27,17 +27,9 @@ struct Opt {
     accept_any_cert: bool
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::from_args();
-    let code = {
-        if let Err(e) = run(opt) {
-            eprintln!("ERROR: {}", e);
-            1
-        } else {
-            0
-        }
-    };
-    ::std::process::exit(code);
+    run(opt)
 }
 
 #[tokio::main]

@@ -29,7 +29,7 @@ struct Opt {
     cert: PathBuf,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(
         tracing_subscriber::FmtSubscriber::builder()
             .with_max_level(Level::DEBUG)
@@ -38,15 +38,7 @@ fn main() {
     .expect("Failed to configure logging");
 
     let opt = Opt::from_args();
-    let code = {
-        if let Err(e) = run(opt) {
-            error!("ERROR: {}", e);
-            1
-        } else {
-            0
-        }
-    };
-    std::process::exit(code);
+    run(opt)
 }
 
 #[tokio::main]
