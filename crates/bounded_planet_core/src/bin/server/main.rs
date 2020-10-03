@@ -116,13 +116,11 @@ fn log_pongs(mut state: ResMut<PongLoggerState>, receiver: ResMut<Events<Receive
     for evt in state.event_reader.iter(&receiver) {
         if let ReceiveEvent::ReceivedPacket { data, .. } = evt {
             if let Packet::Pong(Pong { timestamp }) = **data {
-                
                 let time_sent = SystemTime::UNIX_EPOCH.checked_add(
                     Duration::from_millis(timestamp as u64)
                 ).expect("Overflowed SystemTime");
 
                 let time_now = SystemTime::now();
-
                 let latency = time_now.duration_since(time_sent);
 
                 info!("Received Pong. Latency {:?}", latency);
