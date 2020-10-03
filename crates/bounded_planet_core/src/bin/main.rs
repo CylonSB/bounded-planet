@@ -31,13 +31,7 @@ fn main() {
         .init_resource::<MoveCam>()
         .add_resource(Msaa { samples: 4 })
         .add_default_plugins()
-        .add_plugin(CameraBPPlugin {
-            geo: UniversalGeometry::Plane {
-                origin: Translation::identity(),
-                normal: Vec3::new(0.0, 1.0, 0.0),
-            },
-            ..Default::default()
-        })
+        .add_plugin(CameraBPPlugin::default())
         .add_startup_system(setup.system())
         .add_system_to_stage(stage::EVENT_UPDATE, act_camera_on_window_edge.system())
         .add_system_to_stage(stage::EVENT_UPDATE, act_on_scroll_wheel.system())
@@ -78,7 +72,6 @@ fn setup(
             shaded: true,
             ..Default::default()
         }),
-        translation: Translation::new(4.0, 1.5, 4.0),
         ..Default::default()
     });
 
@@ -88,12 +81,12 @@ fn setup(
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             material: materials.add(Color::rgb(0.5, 0.4, 0.3).into()),
-            translation: Translation::new(-20 as f32, 1.0, -20 as f32),
+            transform: Transform::from_translation(Vec3::new(-20.0, 1.0, -20.0)),
             ..Default::default()
         })
         // light
         .spawn(LightComponents {
-            translation: Translation::new(4.0, 8.0, 4.0),
+            transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
             light: Light {
                 color: Color::WHITE,
                 fov: 90f32,
@@ -103,8 +96,10 @@ fn setup(
         })
         // camera
         .spawn(Camera3dComponents {
-            translation: Translation::new(20.0, 20.0, 20.0),
-            rotation: Rotation::from_rotation_xyz(-0.75, 2.7, 0.0),
+            transform: Transform::from_translation_rotation(
+                Vec3::new(20.0, 20.0, 20.0),
+                Quat::from_rotation_ypr(2.7, -0.75, 0.0)
+            ),
             ..Default::default()
         })
         .with(CameraBPConfig {

@@ -5,7 +5,7 @@ pub fn screen_to_camera(point: Vec2, projection_matrix: Mat4) -> Vec3 {
 }
 
 pub fn camera_to_world(point: Vec3, camera_transform: Transform) -> Vec3 {
-    transform_point(point, camera_transform.value.inverse())
+    transform_point(point, camera_transform.value().inverse())
 }
 
 fn transform_point(point: Vec3, matrix: Mat4) -> Vec3 {
