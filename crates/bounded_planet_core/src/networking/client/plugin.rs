@@ -15,13 +15,7 @@ use crate::networking::{
         ReceiveEvent,
         SendEvent
     },
-    systems::{
-        NetworkConnections,
-        SessionEventListenerState,
-        handle_connection,
-        receive_net_events,
-        send_net_events
-    },
+    systems::*
 };
 
 pub struct Network {
@@ -59,11 +53,11 @@ impl Plugin for Network {
 
         // Add a system that consumes all network events from an MPSC and
         // publishes them as ECS events
-        app.add_system(receive_net_events.system());
+        app.add_system_to_stage(RECEIVE_NET_EVENT_STAGE, receive_net_events.system());
 
         // Add a system that consumes ECS events and forwards them to MPSCs
         // which will eventually be sent over the network
-        app.add_system(send_net_events.system());
+        app.add_system_to_stage(SEND_NET_EVENT_STAGE, send_net_events.system());
     }
 }
 

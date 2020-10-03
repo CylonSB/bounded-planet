@@ -142,6 +142,11 @@ pub fn send_net_events(mut session: ResMut<SessionEventListenerState>, send_even
     }
 }
 
+/// The stage at which [`SendEvent`]s are sent across the network.
+pub const SEND_NET_EVENT_STAGE: &'static str = bevy::app::stage::LAST;
+/// The stage at which [`ReceiveEvent`]s are read from the network.
+pub const RECEIVE_NET_EVENT_STAGE: &'static str = bevy::app::stage::FIRST;
+
 /// Handle all the work of a single connection (waiting for new streams to open)
 pub async fn handle_connection(
     conn: quinn::Connecting,
