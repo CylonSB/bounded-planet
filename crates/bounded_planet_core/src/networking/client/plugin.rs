@@ -51,20 +51,28 @@ impl Plugin for Network {
         // Start a task that waits for the connection to finish opening
         tokio::spawn(
             handle_connection(
-                create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert).expect("Failed to create an endpoint"),
+                create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert)
+                    .expect("Failed to create an endpoint"),
                 send
             )
         );
 
-        // Add a system that consumes all network events from an MPSC and publishes them as ECS events
+        // Add a system that consumes all network events from an MPSC and
+        // publishes them as ECS events
         app.add_system(receive_net_events.system());
 
-        // Add a system that consumes ECS events and forwards them to MPSCs which will eventually be sent over the network
+        // Add a system that consumes ECS events and forwards them to MPSCs
+        // which will eventually be sent over the network
         app.add_system(send_net_events.system());
     }
 }
 
-fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::Certificate, accept_any_cert: bool) -> Result<Connecting<TlsSession>, Box<dyn std::error::Error>> {
+fn create_endpoint(
+    addr: &SocketAddr,
+    url: &Url,
+    server_cert: &quinn::Certificate,
+    accept_any_cert: bool
+) -> Result<Connecting<TlsSession>, Box<dyn std::error::Error>> {
     let mut client_config = ClientConfigBuilder::default();
     client_config.protocols(&[b"hq-29"]);
     
