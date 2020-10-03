@@ -74,7 +74,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     app.init_resource::<PingResponderState>();
     app.add_system(respond_to_pings.system());
 
-    app.add_resource(NetEventLoggerState::default());
+    app.init_resouce::<NetEventLoggerState>();
     app.add_system(log_net_events.system());
 
     // Run it forever

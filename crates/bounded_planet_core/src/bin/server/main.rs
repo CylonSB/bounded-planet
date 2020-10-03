@@ -66,10 +66,10 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
 
     app.add_system(send_pings.system());
 
-    app.add_resource(PongLoggerState::default());
+    app.init_resource::<PongLoggerState>();
     app.add_system(log_pongs.system());
 
-    app.add_resource(NetEventLoggerState::default());
+    app.init_resource::<NetEventLoggerState>();
     app.add_system(log_net_events.system());
 
     // Run it forever
