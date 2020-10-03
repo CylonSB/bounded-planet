@@ -36,6 +36,7 @@ impl Plugin for Network {
         // Create mpsc endpoints for received network events and store them in a resources
         let (send, recv) = unbounded_channel();
         app.add_resource(SessionEventListenerState {
+            event_sender: send.clone(),
             event_receiver: recv,
             stream_senders: Default::default(),
             send_event_reader: Default::default(),
