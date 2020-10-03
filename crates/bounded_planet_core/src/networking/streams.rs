@@ -1,6 +1,8 @@
 use quinn::{ReadExactError, crypto::Session, generic::RecvStream};
 use quinn::{generic::SendStream, WriteError};
 
+use tracing::trace;
+
 use crate::networking::packets::*;
 
 /// Wrap a stream, ready to send packets which can be decoded by a `BoundedPlanetRecvStream`
@@ -41,6 +43,8 @@ impl<TSession: Session> BoundedPlanetSendStream<TSession> {
             .write_all(&bytes)
             .await
             .map_err(SendError::WriteError)?;
+
+        trace!("Sent {} bytes", bytes.len());
 
         Ok(())
     }
@@ -87,6 +91,8 @@ impl<TSession: Session> BoundedPlanetRecvStream<TSession> {
 
         // Decode it
         let packet: Packet = rmp_serde::from_read_ref(&data).map_err(RecvError::DecodeError)?;
+
+        trace!("Received {} bytes", length_prefix);
 
         Ok(packet)
     }

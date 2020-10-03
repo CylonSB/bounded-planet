@@ -12,7 +12,7 @@ use url::Url;
 #[structopt(name = "client")]
 struct Opt {
     /// Address to connect to
-    #[structopt(long="url", default_value="[::1]:4433")]
+    #[structopt(long="url", default_value="quic://localhost:4433")]
     url: Url,
 
     /// TLS certificate in PEM format
