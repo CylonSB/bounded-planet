@@ -1,12 +1,16 @@
-use std::{fs, net::SocketAddr, path::PathBuf};
+use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc, time::SystemTime};
 use std::time::Duration;
-
 use bevy::app::ScheduleRunnerPlugin;
 use bevy::prelude::*;
 use structopt::StructOpt;
-use tracing::{Level, info, error, warn};
-
-use bounded_planet::networking::components::Connection;
+use tracing::{Level, info};
+use bounded_planet::networking::{
+    components::Connection,
+    systems::{NetEventLoggerState, log_net_events},
+    events::{ReceiveEvent, SendEvent},
+    packets::{Packet, Ping, Pong, StreamType},
+    server::plugin::Network as NetworkPlugin
+};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "server")]
@@ -24,24 +28,16 @@ struct Opt {
     cert: PathBuf,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(
         tracing_subscriber::FmtSubscriber::builder()
-            .with_max_level(Level::TRACE)
+            .with_max_level(Level::DEBUG)
             .finish(),
     )
     .expect("Failed to configure logging");
 
     let opt = Opt::from_args();
-    let code = {
-        if let Err(e) = run(opt) {
-            error!("ERROR: {}", e);
-            1
-        } else {
-            0
-        }
-    };
-    std::process::exit(code);
+    run(opt)
 }
 
 #[tokio::main]
@@ -53,13 +49,19 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     )));
 
     let (key, cert) = get_certs(&options.key, &options.cert)?;
-    app.add_plugin(bounded_planet::networking::server::plugin::Network {
+    app.add_plugin(NetworkPlugin {
         certificate: cert,
         private_key: key,
         addr: options.addr,
     });
 
-    app.add_system(log_connections.system());
+    app.add_system(send_pings.system());
+
+    app.init_resource::<PongLoggerState>();
+    app.add_system(log_pongs.system());
+
+    app.init_resource::<NetEventLoggerState>();
+    app.add_system(log_net_events.system());
 
     // Run it forever
     app.run();
@@ -68,8 +70,10 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Fetch certificates to use
-fn get_certs(key_path: &PathBuf, cert_path: &PathBuf) -> Result<(quinn::PrivateKey, quinn::CertificateChain), Box<dyn std::error::Error>> {
-
+fn get_certs(
+    key_path: &PathBuf,
+    cert_path: &PathBuf
+) -> Result<(quinn::PrivateKey, quinn::CertificateChain), Box<dyn std::error::Error>> {
     info!("Loading Key: {:?}", key_path);
     let key = fs::read(key_path)?;
     let key = if key_path.extension().map_or(false, |x| x == "der") {
@@ -92,6 +96,34 @@ fn get_certs(key_path: &PathBuf, cert_path: &PathBuf) -> Result<(quinn::PrivateK
     ))
 }
 
-fn log_connections(_conn: &Connection) {
-    warn!("Connection Entity Exists!");
+fn send_pings(mut sender: ResMut<Events<SendEvent>>, conn: &Connection) {
+    sender.send(SendEvent::SendPacket {
+        connection: conn.id,
+        stream: StreamType::PingPong,
+        data: Arc::new(
+            Packet::Ping(Ping::default())
+        ),
+    });
+}
+
+#[derive(Default)]
+pub struct PongLoggerState {
+    pub event_reader: EventReader<ReceiveEvent>,
+}
+
+fn log_pongs(mut state: ResMut<PongLoggerState>, receiver: ResMut<Events<ReceiveEvent>>) {
+    for evt in state.event_reader.iter(&receiver) {
+        if let ReceiveEvent::ReceivedPacket { data, .. } = evt {
+            if let Packet::Pong(Pong { timestamp }) = **data {
+                let time_sent = SystemTime::UNIX_EPOCH.checked_add(
+                    Duration::from_millis(timestamp as u64)
+                ).expect("Overflowed SystemTime");
+
+                let time_now = SystemTime::now();
+                let latency = time_now.duration_since(time_sent);
+
+                info!("Received Pong. Latency {:?}", latency);
+            }
+        }
+    }
 }

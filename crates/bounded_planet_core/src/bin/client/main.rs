@@ -1,12 +1,14 @@
-use std::{fs, net::ToSocketAddrs, path::PathBuf, time::Duration};
-
+use std::{fs, net::ToSocketAddrs, path::PathBuf, sync::Arc, time::Duration};
 use structopt::StructOpt;
 use bevy::prelude::*;
-use bevy::{app::ScheduleRunnerPlugin};
-
-use bounded_planet::networking::components::Connection;
-use tracing::{Level, info, warn};
+use bevy::app::ScheduleRunnerPlugin;
 use url::Url;
+use tracing::{Level, info};
+use bounded_planet::networking::{
+    systems::{NetEventLoggerState, log_net_events},
+    events::{ReceiveEvent, SendEvent},
+    packets::{Packet, Ping, Pong, StreamType}
+};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "client")]
@@ -23,25 +25,16 @@ struct Opt {
     accept_any_cert: bool
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::from_args();
-    let code = {
-        if let Err(e) = run(opt) {
-            eprintln!("ERROR: {}", e);
-            1
-        } else {
-            0
-        }
-    };
-    ::std::process::exit(code);
+    run(opt)
 }
 
 #[tokio::main]
 async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
-
     tracing::subscriber::set_global_default(
         tracing_subscriber::FmtSubscriber::builder()
-            .with_max_level(Level::TRACE)
+            .with_max_level(Level::DEBUG)
             .finish(),
     )
     .expect("Failed to configure logging");
@@ -67,7 +60,11 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
         accept_any_cert: options.accept_any_cert
     });
 
-    app.add_system(log_connections.system());
+    app.init_resource::<PingResponderState>();
+    app.add_system(respond_to_pings.system());
+
+    app.init_resource::<NetEventLoggerState>();
+    app.add_system(log_net_events.system());
 
     // Run it forever
     app.run();
@@ -81,6 +78,26 @@ fn get_cert(cert_path: &PathBuf) -> Result<quinn::Certificate, Box<dyn std::erro
     Ok(quinn::Certificate::from_der(&fs::read(cert_path)?)?)
 }
 
-fn log_connections(_conn: &Connection) {
-    warn!("Connection Entity Exists!");
+#[derive(Default)]
+pub struct PingResponderState {
+    pub event_reader: EventReader<ReceiveEvent>,
+}
+
+fn respond_to_pings(
+    mut state: ResMut<PingResponderState>,
+    receiver: ResMut<Events<ReceiveEvent>>,
+    mut sender: ResMut<Events<SendEvent>>,
+) {
+    for evt in state.event_reader.iter(&receiver) {
+        if let ReceiveEvent::ReceivedPacket { ref connection, data } = evt {
+            if let Packet::Ping(Ping { timestamp }) = **data {
+                sender.send(SendEvent::SendPacket {
+                    connection: *connection,
+                    stream: StreamType::PingPong,
+                    data: Arc::new(Packet::Pong(Pong { timestamp }))
+                });
+                info!("Received Ping, sending pong. {:?}", connection);
+            }
+        }
+    }
 }

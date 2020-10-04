@@ -13,7 +13,6 @@ pub struct BoundedPlanetSendStream<T: Session> {
 
 #[derive(Debug)]
 pub enum SendError {
-
     /// Sending a packet failed due to a serialisation error
     EncodeError(rmp_serde::encode::Error),
 
@@ -83,7 +82,7 @@ impl<TSession: Session> BoundedPlanetRecvStream<TSession> {
         let length_prefix = u32::from_be_bytes(length_prefix_buf);
 
         // Read that many bytes
-        let mut data = Vec::<u8>::with_capacity(length_prefix as usize);
+        let mut data = vec![0; length_prefix as usize];
         self.recv
             .read_exact(&mut data.as_mut_slice())
             .await
