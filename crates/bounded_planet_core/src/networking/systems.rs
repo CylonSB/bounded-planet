@@ -16,6 +16,12 @@ use super::{
     packets::Packet,
 };
 
+/// The stage at which [`SendEvent`]s are sent across the network.
+pub const SEND_NET_EVENT_STAGE: &str = bevy::app::stage::LAST;
+
+/// The stage at which [`ReceiveEvent`]s are read from the network.
+pub const RECEIVE_NET_EVENT_STAGE: &str = bevy::app::stage::FIRST;
+
 #[derive(Default)]
 pub struct NetEventLoggerState {
     pub event_reader: EventReader<ReceiveEvent>,
