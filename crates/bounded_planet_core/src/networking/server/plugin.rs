@@ -14,7 +14,13 @@ use crate::networking::{
         ReceiveEvent,
         SendEvent
     },
-    systems::*
+    systems::{
+        Connecting,
+        NetworkConnections,
+        SessionEventListenerState,
+        receive_net_events_system,
+        send_net_events_system
+    }
 };
 
 /// Add this plugin to start a server which sends and receives packets to a large number of network connections
@@ -52,13 +58,11 @@ impl Plugin for Network {
         // Spawn a task that polls the socket for events and sends them into an mspc
         tokio::spawn(poll_new_connections(listening, send));
 
-        // Add a system that consumes all network events from an MPSC and
-        // publishes them as ECS events
-        app.add_system_to_stage(RECEIVE_NET_EVENT_STAGE, receive_net_events.system());
+        // Add a system that consumes all network events from an MPSC and publishes them as ECS events
+        app.add_system(receive_net_events_system.system());
 
-        // Add a system that consumes ECS events and forwards them to MPSCs
-        // which will eventually be sent over the network
-        app.add_system_to_stage(SEND_NET_EVENT_STAGE, send_net_events.system());
+        // Add a system that consumes ECS events and forwards them to MPSCs which will eventually be sent over the network
+        app.add_system(send_net_events_system.system());
     }
 }
 
@@ -71,11 +75,11 @@ async fn poll_new_connections(
 
     // Keep polling for new incoming connections being opened
     while let Some(conn) = incoming.next().await {
-        tokio::spawn(handle_connection(conn, event_sender.clone()));
+        let c = Connecting::new(conn, event_sender.clone());
+        tokio::spawn(c.run());
     }
 
-    // Once the socket has closed notify the ECS about it. If sending this
-    // fails (because the ECS has stopped listening) just silently give up.
+    // Once the socket has closed notify the ECS about it. If sending this fails (because the ECS has stopped listening) just silently give up.
     info!("Socket closed");
     let _ = event_sender.send(ReceiveEvent::SocketClosed);
 }
@@ -100,8 +104,7 @@ fn create_endpoint(
         private_key,
     )?;
 
-    // Begin listening for connections, drop the endpoint because we don't need
-    // to establish any outgoing connections
+    // Begin listening for connections, drop the endpoint because we don't need to establish any outgoing connections
     let mut endpoint = quinn::Endpoint::builder();
     endpoint.listen(server_config.build());
     let (_, incoming) = endpoint.bind(&listen)?;

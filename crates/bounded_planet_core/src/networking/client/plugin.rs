@@ -4,7 +4,6 @@ use bevy::prelude::{AppBuilder, Plugin, IntoQuerySystem};
 use quinn::{
     ClientConfigBuilder,
     crypto::rustls::TlsSession,
-    generic::Connecting
 };
 use tokio::sync::mpsc::unbounded_channel;
 use url::Url;
@@ -15,7 +14,13 @@ use crate::networking::{
         ReceiveEvent,
         SendEvent
     },
-    systems::*
+    systems::{
+        Connecting,
+        NetworkConnections,
+        SessionEventListenerState,
+        receive_net_events_system,
+        send_net_events_system
+    }
 };
 
 pub struct Network {
@@ -44,29 +49,22 @@ impl Plugin for Network {
 
         // Start a task that waits for the connection to finish opening
         tokio::spawn(
-            handle_connection(
-                create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert)
-                    .expect("Failed to create an endpoint"),
+            Connecting::new(
+                create_endpoint(&self.addr, &self.url, &self.cert, self.accept_any_cert).expect("Failed to create an endpoint"),
                 send
-            )
+            ).run()
         );
 
-        // Add a system that consumes all network events from an MPSC and
-        // publishes them as ECS events
-        app.add_system_to_stage(RECEIVE_NET_EVENT_STAGE, receive_net_events.system());
+        // Add a system that consumes all network events from an MPSC and publishes them as ECS events
+        app.add_system(receive_net_events_system.system());
 
-        // Add a system that consumes ECS events and forwards them to MPSCs
-        // which will eventually be sent over the network
-        app.add_system_to_stage(SEND_NET_EVENT_STAGE, send_net_events.system());
+        // Add a system that consumes ECS events and forwards them to MPSCs which will eventually be sent over the network
+        app.add_system(send_net_events_system.system());
     }
 }
 
-fn create_endpoint(
-    addr: &SocketAddr,
-    url: &Url,
-    server_cert: &quinn::Certificate,
-    accept_any_cert: bool
-) -> Result<Connecting<TlsSession>, Box<dyn std::error::Error>> {
+fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::Certificate, accept_any_cert: bool) -> Result<quinn::generic::Connecting<TlsSession>, Box<dyn std::error::Error>> {
+
     let mut client_config = ClientConfigBuilder::default();
     client_config.protocols(&[b"hq-29"]);
     
