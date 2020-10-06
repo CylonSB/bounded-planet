@@ -14,14 +14,14 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum NetworkError
 {
-    /// An error occured in attempting to receive a packet from the given stream
+    /// An error occurred in attempting to receive a packet from the given stream
     #[error("Unable to receive packet from connection {connection:?}. Underlying error: {err:?}")]
     ReceiveError {
         connection: ConnectionId,
         err: RecvError,
     },
 
-    /// An error occured during sending
+    /// An error occurred during sending
     #[error("Unable to send packet on stream {stream:?} of connection {connection:?}. Underlying error: {err:?}")]
     SendError {
         connection: ConnectionId,
@@ -29,7 +29,7 @@ pub enum NetworkError
         err: SendError,
     },
 
-    /// An error occured attempting to send a packet through the MPSC to the async packet sender loop
+    /// An error occurred attempting to send a packet through the MPSC to the async packet sender loop
     #[error("MPSC to packet sender closed for stream {stream:?} of connection {connection:?}. Packet that wasn't sent: {failed_packet:?}")]
     StreamSenderError {
         connection: ConnectionId,
