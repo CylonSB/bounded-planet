@@ -142,7 +142,7 @@ pub fn send_net_events_system(mut session: ResMut<SessionEventListenerState>, se
         if sender.send(send.clone()).is_err() {
             warn!("Failed to publish packet from ECS->MPSC");
             session.event_sender
-                .send(ReceiveEvent::NetworkError(send.to_stream_sender_error()))
+                .send(ReceiveEvent::NetworkError(send.as_stream_sender_error()))
                 .expect("Failed to send error event!");
         }
     }
