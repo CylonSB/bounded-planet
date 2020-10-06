@@ -85,6 +85,7 @@ pub enum SendEvent
 }
 
 impl SendEvent {
+    /// Get the connectionid associated with this send event
     pub fn get_connection(&self) -> ConnectionId {
         match self {
             SendEvent::SendPacket { connection, .. } => *connection,
@@ -92,7 +93,8 @@ impl SendEvent {
         }
     }
 
-    pub fn to_stream_sender_error(&self) -> NetworkError {
+    /// Get a `NetworkError::StreamSenderError` from this send event 
+    pub fn as_stream_sender_error(&self) -> NetworkError {
         let (c, s, f) = match self {
             SendEvent::SendPacket { connection, stream, data } => (*connection, Some(*stream), data),
             SendEvent::TransferPacket { connection, data } => (*connection, None, data)
@@ -105,6 +107,7 @@ impl SendEvent {
         }
     }
 
+    /// Send this event through the given quinn connection, looking for open streams in the `senders` vec
     pub async fn send(&self, senders: &mut Vec<SendStream<TlsSession>>, quinn_conn: &mut quinn::Connection) -> Result<(), NetworkError> {
 
         match self {

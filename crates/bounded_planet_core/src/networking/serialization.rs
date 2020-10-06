@@ -32,7 +32,7 @@ impl Packet {
     /// Receive a packet from a network stream. Should have been written with `packet.send(stream)`
     pub async fn receive<T: Session>(recv: &mut RecvStream<T>) -> Result<Packet, RecvError> {
         // Read 4 byte network ordered length prefix
-        let mut length_prefix_buf = [0u8, 0, 0, 0];
+        let mut length_prefix_buf = [0u8; 4];
         recv
             .read_exact(&mut length_prefix_buf)
             .await

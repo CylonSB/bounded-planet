@@ -77,8 +77,7 @@ async fn poll_new_connections(
 
     // Keep polling for new incoming connections being opened
     while let Some(conn) = incoming.next().await {
-        let c = Connecting::new(conn, event_sender.clone());
-        tokio::spawn(c.run());
+        tokio::spawn(Connecting::new(conn, event_sender.clone()).run());
     }
 
     // Once the socket has closed notify the ECS about it. If sending this fails (because the ECS has stopped listening) just silently give up.

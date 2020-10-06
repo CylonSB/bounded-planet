@@ -188,17 +188,17 @@ impl Connecting {
             .expect("Failed to send network event");
 
         // Start running tasks to send/receive to this connection
-        tokio::spawn(Connected::new(
-            self.id,
+        tokio::spawn(Connected {
+            id: self.id,
+            send: self.event_sender,
             connection,
             uni_streams,
-            recv,
-            self.event_sender,
-        ).run());
+            recv
+        }.run());
     }    
 }
 
-/// Represents an active quinn connection
+/// Represents a connected quinn connection
 struct Connected {
     id: ConnectionId,
     connection: quinn::Connection,
@@ -208,22 +208,7 @@ struct Connected {
 }
 
 impl Connected {
-    fn new(
-        id: ConnectionId,
-        connection: quinn::Connection,
-        uni_streams: IncomingUniStreams,
-        recv: UnboundedReceiver<SendEvent>,
-        send: UnboundedSender<ReceiveEvent>
-    ) -> Self {
-        Connected {
-            id,
-            connection,
-            uni_streams,
-            recv,
-            send
-        }
-    }
-
+    /// start running the async tasks required to pump this connection
     pub async fn run(self) {
         // Spawn a task which polls for new incoming streams
         tokio::spawn(Self::poll_incoming_streams(self.uni_streams, self.send.clone(), self.id));
@@ -256,6 +241,7 @@ impl Connected {
             .expect("Failed to send network event");
     }
 
+    /// Pump the MPSCs for new packets that need sending
     async fn send_to_streams(
         mut conn: quinn::Connection,
         mut recv: UnboundedReceiver<SendEvent>,
@@ -276,7 +262,7 @@ impl Connected {
         }
     }
 
-    /// Handle all the work of a specific stream
+    /// Handle all the work of reading from a specific stream
     async fn read_from_stream(
         connection_id: ConnectionId,
         mut stream_recv: RecvStream<TlsSession>,
