@@ -1,6 +1,7 @@
 use bevy::{prelude::*, render::mesh::VertexAttribute};
 
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 
 use super::heightmap::HeightmapData;
 
@@ -43,11 +44,18 @@ impl Iterator for QuadPatchGenerator {
     }
 }
 
-//takes a grayscale texture handle and returns a mesh with height based on the grayscale values
-pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::Error>>
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MeshData {
+    pub vertices: Vec<[f32; 3]>,
+    pub indices: Vec<u32>,
+    pub normals: Vec<[f32; 3]>,
+    pub uvs: Vec<[f32; 2]>,
+}
+
+/// takes a grayscale texture handle and returns the mesh data to generate a mesh
+pub fn texture_to_mesh_data<T>(land_texture: &T) -> MeshData
     where T: HeightmapData
 {
-
     let width = i32::from(land_texture.size().0);
     let height = i32::from(land_texture.size().1);
 
@@ -81,15 +89,28 @@ pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::
         })
         .collect::<Vec<_>>();
 
-    //Generates the mesh from the information generated above using bevy's mesh generators
+    MeshData {
+        vertices: positions,
+        normals: normals,
+        indices: indices(land_texture.size().0, land_texture.size().1),
+        uvs: uvs(width, height),
+    }
+}
+
+/// takes a grayscale texture handle and returns a mesh with height based on the grayscale values
+pub fn texture_to_mesh<T>(land_texture: &T) -> Result<Mesh, Box<dyn std::error::Error>>
+    where T: HeightmapData
+{
+    let mesh_data = texture_to_mesh_data(land_texture);
+
     let land_mesh = Mesh {
         primitive_topology: bevy::render::pipeline::PrimitiveTopology::TriangleList,
         attributes: vec![
-            VertexAttribute::position(positions),
-            VertexAttribute::normal(normals),
-            VertexAttribute::uv(uvs(width, height)),
+            VertexAttribute::position(mesh_data.vertices),
+            VertexAttribute::normal(mesh_data.normals),
+            VertexAttribute::uv(mesh_data.uvs),
         ],
-        indices: Some(indices(land_texture.size().0, land_texture.size().1)),
+        indices: Some(mesh_data.indices),
     };
 
     Ok(land_mesh)
