@@ -126,12 +126,12 @@ impl CameraBPAction {
     /// Return whether this is a signaling (ie `None`) action.
     pub const fn is_signal(&self) -> bool {
         matches!(self,
-            CameraBPAction::MoveLeft(None),
-            CameraBPAction::MoveRight(None),
-            CameraBPAction::MoveForward(None),
-            CameraBPAction::MoveBack(None),
-            CameraBPAction::ZoomIn(None),
-            CameraBPAction::ZoomOut(None)
+            CameraBPAction::MoveLeft(None)
+            | CameraBPAction::MoveRight(None)
+            | CameraBPAction::MoveForward(None)
+            | CameraBPAction::MoveBack(None)
+            | CameraBPAction::ZoomIn(None)
+            | CameraBPAction::ZoomOut(None)
         )
     }
 
