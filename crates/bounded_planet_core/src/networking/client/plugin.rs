@@ -1,5 +1,6 @@
 use std::{net::SocketAddr, sync::Arc};
 
+use thiserror::Error;
 use bevy::prelude::{AppBuilder, Plugin, IntoQuerySystem};
 use quinn::{
     ClientConfigBuilder,
@@ -65,14 +66,30 @@ impl Plugin for Network {
     }
 }
 
-fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::Certificate, accept_any_cert: bool) -> Result<quinn::generic::Connecting<TlsSession>, Box<dyn std::error::Error>> {
+#[derive(Error, Debug)]
+enum CreateEndpointError {
+    #[error(transparent)]
+    EndpointError(#[from] quinn::EndpointError),
 
+    #[error(transparent)]
+    ConnectError(#[from] quinn::ConnectError)
+}
+
+fn create_endpoint(
+    addr: &SocketAddr,
+    url: &Url,
+    server_cert: &quinn::Certificate,
+    accept_any_cert: bool
+) -> Result<quinn::generic::Connecting<TlsSession>, CreateEndpointError>
+{
     let mut client_config = ClientConfigBuilder::default();
     client_config.protocols(&[b"hq-29"]);
     
     let mut client_config = client_config.build();
     if accept_any_cert {
-        let tls_cfg: &mut rustls::ClientConfig = Arc::get_mut(&mut client_config.crypto).unwrap();
+        let tls_cfg: &mut rustls::ClientConfig = Arc::get_mut(&mut client_config.crypto)
+            .expect("Failed to get mutable reference to crypto configuration");
+        
         // this is only available when compiled with "dangerous_configuration" feature
         tls_cfg
             .dangerous()
@@ -85,8 +102,8 @@ fn create_endpoint(addr: &SocketAddr, url: &Url, server_cert: &quinn::Certificat
     
     endpoint.default_client_config(client_config);
 
-    let (endpoint, _) = endpoint.bind(&"[::]:0".parse().unwrap())?;
-    let connecting = endpoint.connect(addr, &url.host_str().unwrap())?;
+    let (endpoint, _) = endpoint.bind(&"[::]:0".parse().expect("Failed to parse bind address"))?;
+    let connecting = endpoint.connect(addr, &url.host_str().expect("Failed to get host_str from url"))?;
 
     Ok(connecting)
 }

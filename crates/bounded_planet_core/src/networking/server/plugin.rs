@@ -1,11 +1,10 @@
 use std::{net::SocketAddr, sync::Arc};
 
+use thiserror::Error;
 use bevy::prelude::{AppBuilder, Plugin};
 use quinn::{crypto::rustls::TlsSession, generic::Incoming};
-
 use bevy::prelude::IntoQuerySystem;
 use futures::StreamExt;
-
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use tracing::info;
 
@@ -85,12 +84,22 @@ async fn poll_new_connections(
     let _ = event_sender.send(ReceiveEvent::SocketClosed);
 }
 
+#[derive(Error, Debug)]
+enum CreateEndpointError {
+    #[error(transparent)]
+    TLSError(#[from] rustls::TLSError),
+
+    #[error(transparent)]
+    EndpointError(#[from] quinn::EndpointError)
+}
+
 /// Create a network endpoint
 fn create_endpoint(
     listen: SocketAddr,
     private_key: quinn::PrivateKey,
     certificate: quinn::CertificateChain,
-) -> Result<Incoming<TlsSession>, Box<dyn std::error::Error>> {
+) -> Result<Incoming<TlsSession>, CreateEndpointError>
+{
     // Configure endpoint
     let mut transport_config = quinn::TransportConfig::default();
     transport_config.stream_window_uni(128);
