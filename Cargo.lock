@@ -755,7 +755,7 @@ dependencies = [
  "deflate",
  "futures",
  "futures-util",
- "itertools",
+ "itertools 0.9.0",
  "quinn",
  "rmp-serde",
  "rustls",
@@ -769,6 +769,20 @@ dependencies = [
  "url",
  "uuid",
  "webpki",
+]
+
+[[package]]
+name = "bounded-planet-pathfinding"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "noisy_float",
+ "pathfinding",
+ "rmp-serde",
+ "serde",
+ "thiserror",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -1935,6 +1949,15 @@ dependencies = [
 
 [[package]]
 name = "itertools"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
@@ -2395,6 +2418,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "noisy_float"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a14c16cde392a1cd18084ffd8348cb8937525130e62f0478d72dcc683698809d"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "nom"
 version = "5.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2640,6 +2672,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d95a7db200b97ef370c8e6de0088252f7e0dfff7d047a28528e47456c0fc98b6"
 dependencies = [
  "proc-macro-hack",
+]
+
+[[package]]
+name = "pathfinding"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86f4d8cc85ca67860ef4324faf86973a39e4e1c78338987eda29a8e6b6ec0c0e"
+dependencies = [
+ "fixedbitset 0.2.0",
+ "indexmap",
+ "itertools 0.8.2",
+ "num-traits",
 ]
 
 [[package]]
