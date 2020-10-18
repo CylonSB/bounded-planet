@@ -1,0 +1,1 @@
+cargo run --bin server -- --cert "./certs/cert.pem" --key "./certs/key.pem"

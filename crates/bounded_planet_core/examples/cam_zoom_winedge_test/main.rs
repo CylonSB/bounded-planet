@@ -149,13 +149,12 @@ fn act_on_scroll_wheel(
 
 // Return whether this action was created from the window edge.
 fn is_winedge_act(act: &CameraBPAction) -> bool {
-    match act {
+    matches!(act,
         CameraBPAction::MoveLeft(_)
         | CameraBPAction::MoveRight(_)
         | CameraBPAction::MoveForward(_)
-        | CameraBPAction::MoveBack(_) => true,
-        _ => false,
-    }
+        | CameraBPAction::MoveBack(_)
+    )
 }
 
 /// Depending on `dirty`, either update the local `cache` or fill the event
