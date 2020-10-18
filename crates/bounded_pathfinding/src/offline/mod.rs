@@ -81,8 +81,3 @@ trait Tile<TFace>
         }
     }
 }
-
-#[test]
-fn foo() {
-    assert!(false);
-}
