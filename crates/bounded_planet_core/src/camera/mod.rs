@@ -125,15 +125,14 @@ pub enum CameraBPAction {
 impl CameraBPAction {
     /// Return whether this is a signaling (ie `None`) action.
     pub const fn is_signal(&self) -> bool {
-        match self {
+        matches!(self,
             CameraBPAction::MoveLeft(None)
             | CameraBPAction::MoveRight(None)
             | CameraBPAction::MoveForward(None)
             | CameraBPAction::MoveBack(None)
             | CameraBPAction::ZoomIn(None)
-            | CameraBPAction::ZoomOut(None) => true,
-            _ => false,
-        }
+            | CameraBPAction::ZoomOut(None)
+        )
     }
 
     /// Returns whether `self` and `other` are both signals for the same
