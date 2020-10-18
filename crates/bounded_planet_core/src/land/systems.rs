@@ -20,7 +20,7 @@ pub fn setup_world_mesh_data(mut state: ResMut<WorldTileDataState>, asset_server
 }
 
 // Notes:
-// + lost `setup_world_mesh_data` system
+// + lose `setup_world_mesh_data` system
 // + generate meshes on request in `handle_world_tile_data_requests`
 // + store a cache in `WorldTileDataState`
 // + generate meshes async (rayon?) and stream when done

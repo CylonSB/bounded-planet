@@ -1,0 +1,1 @@
+cargo run --bin gen_world -- --path content/worlds

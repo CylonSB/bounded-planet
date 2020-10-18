@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use super::heightmap::HeightmapData;
 
+pub const MAX_INDEX_COUNT: usize = u16::MAX as usize;
+
 /// Iterator which generates a quad (two triangles) with the top left corner at a given idnex
 struct QuadPatchGenerator {
     idx: usize,
