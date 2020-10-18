@@ -29,4 +29,4 @@ Game Systems require time or effort to understand/use/optimize.
 Winning battles is primarily determined by player actions manipulating specific units (e.g. per-unit abilities).
 
 ## Disability Accessibility
-Ability to play the game when having some disabilities (deaf, colour-blind, hard of hearing). 
+Ability to play the game when having some disabilities (deaf, colour-blind, hard of hearing).

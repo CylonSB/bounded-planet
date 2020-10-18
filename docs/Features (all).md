@@ -1,62 +1,80 @@
 ## Streaming Economy
 The player does not need to save up enough resources to build something before starting to build it.
+ - Supcom-alike economy. Economy is based more on _flow_ of resources than resource stockpile itself.
+ - Resources can be spent as they are accumulated (without waiting for the full required amount).
+ - Planetary Annihilation is an actual example rather than another definition.
 
 ## Biomes
-Sections of map have significantly different features.
-
-## Procedural Generation
-Map is automatically generated (when a world is created).
-## Procedural game world
-Game world such as terrain, trees, etc can be generated.
-## Procedural game content
-Game content such as tech tree, etc can be generated.
+Sections of map have significantly different features that change gameplay.
+ - e.g. deserts do not allow tanks to pass, swamps do not allow any ground troops.
+ - Minecraft...? Biomes don't have to have major gameplay consequences per se, can just be flavour
+ - Terraria
+ - Starbound
 
 ## AI Rules Of Engagement
 AI units can have rules that change what actions they take.
-
-## Matchmaking
-Players are added to games with other players who have a similar skill set.
+ - e.g. set these specific units to attack anyone (even allies) who enters this user defined area
+ - can specify range, which player, and possibly more complex interactions for how the AI functions in relation to others 
+ - Arma 3 rules of engagement maybe something to look at
 
 ## Supply Chains
 Multiple resources must be combined to produce new resources.
+ - e.g. Coal+Iron=>Steel
+ - Such as modded Minecraft (FtB), Anno games, etc
+ - e.g. exempli.g. e.gratia factorio
+ - exempli gratia 
 
 ## Multiple Production Chains
 There are multiple different supply chains/buildings that can be used to produce the same thing.
-
-## Distributed Industry
-Industry can be spread around the world. Harder to destroy but less efficient.
-
-## Concentrated Industry
-Industry can be built in the same place. Easier to destroy but more efficient.
+ - Iron+Coal=>2 Steel, Iron+Wood=>1 Steel
+ - Alternative routes to produce resources, so players could theoretically bypass more complicated mechanics for an efficiency loss
+ - factorio
+ - Dwarf Fortress
+ - Cataclysm DDA
 
 ## Hand Built Factories
 Player can hand build complex production chains to produce items, like Factorio.
+ - e.g. Factorio
+ - shapez.io
+ - CoaDE-level depth to creating individual motors used in robotic arms for moving and transporting items within a single factory tile
+   (**we dont want this btw**)
+
+## Logistic Factories
+Players put down factories in single bases without having to worry about the details of exactly where they are and how resources move.
+ - e.g. build vans and roads in a factory to automatically move stuff between buildings.
+
+## Victory Obelisks
+Several incredibly expensive structures must be built by a player/team to win the game.
+ - e.g. AOE Wonders Victory
+
+## Adjacency Bonus
+Factories next to other factories get a built in production bonus.
+ - e.g. Supcom
+ - e.g. Offworld Trading Company
 
 ## Mining Resources
-Resources are extracted from nodes in the world.
+Resources are extracted from the world.
+ - e.g. Supcom/Planetary Annihilation (mass spots)
+ - e.g. wood is gathered from forests, which disappear (e.g. AOE)
 
 ## Mines Get Worse
 Resource node extracted resources get less over time/amount of extracted resources.
+ - e.g. over 24 hours of being exploited the mine output goes from 10 iron/s to 1 iron/s
+ - e.g. a forest disappears when you cut it down
 
 ## Mines Get Better
 Resource node extracted resources get more over time/amount of extracted/with investment resources.
+ - e.g. over 24 hours of a mine being exploited output goes from 1 iron/s to 10 iron/s
+ - e.g. 1000 iron can be spent to double the output of a mining output
 
-## Roads
-Paths for ground units can be defined and laid out in the world.
+## Static Logistics Routes (Roads/Rails)
+Paths for ground units can be defined and laid out in the world, following defined and static routes.
+ - e.g. Roads take a small amount of time and resources to build. But can only carry a small truck.
+ - e.g. Train tracks take a large amount of time and resources to build. But can carry huge train loads of resources.
 
-## Railways
-Tracks can be created for trains (or other rail-based vehicles) to traverse the world on.
-
-## Cargo planes
-Air travel is a form of logistics transport.
-
-## Free Roaming Convoys
+## Free Logistics Routes
 Units can move stuff without a predefined static path per route.
-Example: trucks that can arbitrarily traverse the world.
-
-## Static Convoys
-Units can have a player-defined, static path per route.
-Example: railways or trucks on fixed roads.
+ - e.g. Trucks that can traverse the world without a road. But slowly.
 
 ## Neutral Infrastructure
 Certain physical infrastructure (roads, railways, resource miners, warehouses, airstrips etc) can be used by anyone.
@@ -77,10 +95,14 @@ Certain units are capable of capturing buildings/etc to your side.
 Low level barely-combat-capable units that can capture or anti-capture stuff.
 
 ## Required Upkeep
-Units _require_ resources to operate.
+Armies _require_ resources.
+ - e.g. a tank without fuel takes damage over time.
+ - e.g. a tank without fuel takes no action.
 
 ## Optional Upkeep
-Units with upkeep requirements not met still have some effectiveness.
+Armies with upkeep requirements not met are less effective.
+ - e.g. a tank without fuel can't move as fast.
+ - e.g. a tank without fuel moves slower/fires slower.
 
 ## Shared Unit Resource Pools
 An entire army/group of units has a shared resource pool.
