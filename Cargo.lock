@@ -23,6 +23,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2692800d602527d2b8fea50036119c37df74ab565b10e285706a3dcec0ec3e16"
 
 [[package]]
+name = "adler"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee2a4ec343196209d6594e19543ae87a39f96d5534d7174822a3ad825dd6ed7e"
+
+[[package]]
 name = "adler32"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -752,7 +758,7 @@ dependencies = [
  "anyhow",
  "bevy",
  "bevy_rapier3d",
- "deflate",
+ "flate2",
  "futures",
  "futures-util",
  "image",
@@ -968,9 +974,9 @@ dependencies = [
 
 [[package]]
 name = "color_quant"
-version = "1.0.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dbbb57365263e881e805dc77d94697c9118fd94d8da011240555aa7b23445bd"
+checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
 name = "concurrent-queue"
@@ -1350,6 +1356,18 @@ name = "fixedbitset"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e08c8bc7575d7e091fe0706963bd22e2a4be6a64da995f03b2a5a57d66ad015"
+
+[[package]]
+name = "flate2"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da80be589a72651dcda34d8b35bcdc9b7254ad06325611074d9cc0fbb19f60ee"
+dependencies = [
+ "cfg-if",
+ "crc32fast",
+ "libc",
+ "miniz_oxide 0.4.3",
+]
 
 [[package]]
 name = "fnv"
@@ -2236,6 +2254,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "miniz_oxide"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f2d26ec3309788e423cfbf68ad1800f061638098d76a83681af979dc4eda19d"
+dependencies = [
+ "adler",
+ "autocfg",
+]
+
+[[package]]
 name = "mio"
 version = "0.6.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2747,7 +2775,7 @@ dependencies = [
  "bitflags",
  "crc32fast",
  "deflate",
- "miniz_oxide",
+ "miniz_oxide 0.3.7",
 ]
 
 [[package]]
@@ -3659,7 +3687,7 @@ checksum = "3f3b8a87c4da944c3f27e5943289171ac71a6150a79ff6bacfff06d159dfff2f"
 dependencies = [
  "byteorder",
  "lzw",
- "miniz_oxide",
+ "miniz_oxide 0.3.7",
 ]
 
 [[package]]

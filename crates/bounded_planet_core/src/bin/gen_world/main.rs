@@ -8,6 +8,7 @@ use anyhow;
 use image::GrayImage;
 use image;
 use rmp_serde;
+use flate2;
 use tracing::{Level, error};
 
 #[derive(StructOpt, Debug)]
@@ -123,9 +124,9 @@ fn generate_mesh(file_path: &PathBuf, out_path: &PathBuf) -> anyhow::Result<()> 
     })?;
     let mesh = texture_to_mesh_data(&heightmap);
 
-    let mut encoder = deflate::write::ZlibEncoder::new(
+    let mut encoder = flate2::write::ZlibEncoder::new(
         std::fs::File::create(out_path)?,
-        deflate::Compression::Fast
+        flate2::Compression::new(5)
     );
     encoder.write_all(&rmp_serde::to_vec(&mesh)?)?;
 

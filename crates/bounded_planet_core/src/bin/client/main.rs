@@ -8,16 +8,9 @@ use bevy::{
         mouse::{MouseButtonInput, MouseScrollUnit, MouseWheel},
     },
     prelude::*,
-    render::mesh::shape
+    render::mesh::{Mesh, VertexAttribute}
 };
-use bounded_planet::{
-    networking::{
-        systems::{NetEventLoggerState, log_net_events},
-        events::{ReceiveEvent, SendEvent},
-        packets::{Packet, Ping, Pong, StreamType}
-    },
-    camera::*, land::*, land::TextureHeightmap
-};
+use bounded_planet::{camera::*, networking::{events::{ReceiveEvent, SendEvent}, packets::{Packet, Ping, Pong, StreamType, WorldTileData, WorldTileDataRequest}, systems::{NetEventLoggerState, log_net_events}}};
 
 
 // The thresholds for window edge.
@@ -102,6 +95,12 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     app.add_system_to_stage(CAM_CACHE_UPDATE, use_or_update_action_cache.system());
     app.add_system(play_every_sound_on_mb1.system());
 
+    app.init_resource::<TileReceivedState>();
+    app.add_system(handle_tile_received.system());
+
+    app.init_resource::<RequestTileOnConnected>();
+    app.add_system(request_tile_on_connected.system());
+
     // Run it forever
     app.run();
 
@@ -138,39 +137,92 @@ fn respond_to_pings(
     }
 }
 
+#[derive(Default)]
+pub struct TileReceivedState {
+    pub event_reader: EventReader<ReceiveEvent>,
+}
+
+/// When a tile is received from the server, we load it into the scene
+fn handle_tile_received(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut state: ResMut<TileReceivedState>,
+    receiver: ResMut<Events<ReceiveEvent>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut textures: ResMut<Assets<Texture>>,
+    mut materials: ResMut<Assets<StandardMaterial>>
+) {
+    for evt in state.event_reader.iter(&receiver) {
+        if let ReceiveEvent::ReceivedPacket { connection: ref _connection, data } = evt {
+            if let Packet::WorldTileData(WorldTileData { mesh_data }) = (**data).clone() {
+                info!("Loading tile received from server.");
+                let land_texture_top_handle = asset_server
+                    .load_sync(&mut textures, "content/textures/CoveWorldTop.png")
+                    .expect("Failed to load CoveWorldTop.png");
+                commands.spawn(PbrComponents {
+                    mesh: meshes.add(Mesh {
+                        primitive_topology: bevy::render::pipeline::PrimitiveTopology::TriangleList,
+                        attributes: vec![
+                            VertexAttribute::position(mesh_data.vertices),
+                            VertexAttribute::normal(mesh_data.normals),
+                            VertexAttribute::uv(mesh_data.uvs),
+                        ],
+                        indices: Some(mesh_data.indices),
+                    }),
+                    material: materials.add(StandardMaterial {
+                        albedo_texture: Some(land_texture_top_handle),
+                        shaded: true,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                });
+                info!("Finished loading tile.");
+            }
+        }
+    }
+}
+
+#[derive(Default)]
+struct RequestTileOnConnected {
+    pub event_reader: EventReader<ReceiveEvent>,
+    // mut sender: ResMut<Events<SendEvent>>,
+}
+
+/// When the client connects to the server, request a tile
+fn request_tile_on_connected(
+    mut state: ResMut<RequestTileOnConnected>,
+    mut sender: ResMut<Events<SendEvent>>,
+    receiver: ResMut<Events<ReceiveEvent>>
+) {
+    for evt in state.event_reader.iter(&receiver) {
+        if let ReceiveEvent::Connected(connection, _) = evt {
+            info!("Requesting tile because connected to server...");
+            sender.send(SendEvent::SendPacket {
+                connection: connection.clone(),
+                stream: StreamType::WorldTileData,
+                data: Arc::new(Packet::WorldTileDataRequest(WorldTileDataRequest {
+                    //todo(#46): Respect request coordinates (x, y lod)
+                    x: 0,
+                    y: 0,
+                    lod: 0
+                }))
+            });
+        }
+    }
+}
+
 /// set up a simple 3D scene with landscape?
 fn setup_scene(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut textures: ResMut<Assets<Texture>>,
+    // mut textures: ResMut<Assets<Texture>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut sounds: ResMut<Assets<AudioSource>>,
 ) {
-    let land_texture_handle = asset_server
-        .load_sync(&mut textures, "content/textures/CoveWorldtest.png")
-        .expect("Failed to load CoveWorld.png");
-
-    let land_texture_top_handle = asset_server
-        .load_sync(&mut textures, "content/textures/CoveWorldTop.png")
-        .expect("Failed to load CoveWorldTop.png");
-
     asset_server
         .load_sync(&mut sounds, "content/textures/test_sound.mp3")
         .expect("Failed to load test_sound.mp3");
-
-    let wrap = TextureHeightmap::new(textures.get(&land_texture_handle).expect("Couldn't get texture")).expect("Couldn't wrap texture");
-    let land_mesh = texture_to_mesh(&wrap).expect("Couldn't turn texture to mesh");
-
-    commands.spawn(PbrComponents {
-        mesh: meshes.add(land_mesh),
-        material: materials.add(StandardMaterial {
-            albedo_texture: Some(land_texture_top_handle),
-            shaded: true,
-            ..Default::default()
-        }),
-        ..Default::default()
-    });
 
     // add entities to the world
     commands

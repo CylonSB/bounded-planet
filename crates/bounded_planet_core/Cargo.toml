@@ -18,7 +18,7 @@ tracing-futures = "0.2.4"
 url = "2.1.1"
 serde = "1.0.116"
 rmp-serde = "0.14.4"
-deflate = "0.8.6"
+flate2 = "1.0.18"
 futures-util = "0.3.5"
 uuid = { version = "0.8", features = ["v4"] }
 itertools = "0.9.0"
