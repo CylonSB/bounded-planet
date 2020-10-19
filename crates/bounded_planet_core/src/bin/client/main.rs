@@ -10,7 +10,10 @@ use bevy::{
     prelude::*,
     render::mesh::{Mesh, VertexAttribute}
 };
-use bounded_planet::{camera::*, networking::{events::{ReceiveEvent, SendEvent}, packets::{Packet, Ping, Pong, StreamType, WorldTileData, WorldTileDataRequest}, systems::{NetEventLoggerState, log_net_events}}};
+use bounded_planet::{
+    camera::*,
+    networking::{events::*, packets::*, systems::*}
+};
 
 
 // The thresholds for window edge.
@@ -98,7 +101,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     app.init_resource::<TileReceivedState>();
     app.add_system(handle_tile_received.system());
 
-    app.init_resource::<RequestTileOnConnected>();
+    app.init_resource::<RequestTileOnConnectedState>();
     app.add_system(request_tile_on_connected.system());
 
     // Run it forever
@@ -183,14 +186,13 @@ fn handle_tile_received(
 }
 
 #[derive(Default)]
-struct RequestTileOnConnected {
+struct RequestTileOnConnectedState {
     pub event_reader: EventReader<ReceiveEvent>,
-    // mut sender: ResMut<Events<SendEvent>>,
 }
 
 /// When the client connects to the server, request a tile
 fn request_tile_on_connected(
-    mut state: ResMut<RequestTileOnConnected>,
+    mut state: ResMut<RequestTileOnConnectedState>,
     mut sender: ResMut<Events<SendEvent>>,
     receiver: ResMut<Events<ReceiveEvent>>
 ) {

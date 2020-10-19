@@ -46,6 +46,7 @@ impl Iterator for QuadPatchGenerator {
     }
 }
 
+/// Stores infomation for a chunk of the land, stored on the server and sent to clients
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MeshData {
     pub vertices: Vec<[f32; 3]>,

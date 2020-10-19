@@ -18,12 +18,12 @@ struct Opt {
 #[derive(Debug, Error)]
 enum Errors {
     #[error("The provided path was not a png file or folder: `{path:?}`")]
-	InvalidPath {
-		path: PathBuf
+    InvalidPath {
+        path: PathBuf
     },
 
     #[error("The provided heightmap was too large, was {:?} pixels too large. path: {:?}", .0.oversize, .0.path)]
-	InputImageTooLarge(InputImageTooLargeError),
+    InputImageTooLarge(InputImageTooLargeError),
 }
 
 #[derive(Debug)]
@@ -83,12 +83,12 @@ fn main() -> anyhow::Result<()> {
 
 #[tokio::main]
 async fn run(options: Opt) -> anyhow::Result<()> {
-	let metadata = fs::metadata(&options.path)?;
-	if metadata.is_file() {
+    let metadata = fs::metadata(&options.path)?;
+    if metadata.is_file() {
         let mut output_path = options.path.clone();
         output_path.set_extension(EXTENSION);
         generate_mesh(&options.path, &output_path)?;
-	} else if metadata.is_dir() {
+    } else if metadata.is_dir() {
         for entry in fs::read_dir(&options.path)? {
             let entry = entry?;
             let path = entry.path();
@@ -100,8 +100,8 @@ async fn run(options: Opt) -> anyhow::Result<()> {
                 }
             }
         }
-	} else {
-		return Err(Errors::InvalidPath {path: options.path.clone()}.into());
+    } else {
+        return Err(Errors::InvalidPath {path: options.path.clone()}.into());
     }
     
     Ok(())
