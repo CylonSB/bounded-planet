@@ -1,7 +1,5 @@
 use std::sync::Arc;
 use bevy::prelude::*;
-use rmp_serde;
-use flate2;
 use crate::networking::{
     events::{ReceiveEvent, SendEvent},
     packets::{Packet, WorldTileDataRequest, WorldTileData}

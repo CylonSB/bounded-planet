@@ -198,7 +198,7 @@ fn request_tile_on_connected(
         if let ReceiveEvent::Connected(connection, _) = evt {
             info!("Requesting tile because connected to server...");
             sender.send(SendEvent::SendPacket {
-                connection: connection.clone(),
+                connection: *connection,
                 stream: StreamType::WorldTileData,
                 data: Arc::new(Packet::WorldTileDataRequest(WorldTileDataRequest {
                     //todo(#46): Respect request coordinates (x, y lod)

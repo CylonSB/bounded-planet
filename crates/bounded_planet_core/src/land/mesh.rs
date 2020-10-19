@@ -93,7 +93,7 @@ pub fn texture_to_mesh_data<T>(land_texture: &T) -> MeshData
 
     MeshData {
         vertices: positions,
-        normals: normals,
+        normals,
         indices: indices(land_texture.size().0, land_texture.size().1),
         uvs: uvs(width, height),
     }

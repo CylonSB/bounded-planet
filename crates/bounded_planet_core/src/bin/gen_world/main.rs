@@ -4,11 +4,7 @@ use bounded_planet::land::heightmap::{HeightmapData, SamplingError};
 use bounded_planet::land::mesh::MAX_INDEX_COUNT;
 use structopt::StructOpt;
 use thiserror::Error;
-use anyhow;
 use image::GrayImage;
-use image;
-use rmp_serde;
-use flate2;
 use tracing::{Level, error};
 
 #[derive(StructOpt, Debug)]
@@ -45,13 +41,13 @@ impl<'a> ImageHeightmap<'a> {
     {
         let size = usize::try_from(texture.width() * texture.height()).expect("word size is less than 32 bit");
         if size > MAX_INDEX_COUNT {
-            Err(InputImageTooLargeError {
+            return Err(InputImageTooLargeError {
                 path: None,
                 oversize: size-MAX_INDEX_COUNT
-            })?
+            })
         }
         Ok(ImageHeightmap {
-            texture: texture
+            texture
         })
     }
 }
@@ -105,7 +101,7 @@ async fn run(options: Opt) -> anyhow::Result<()> {
             }
         }
 	} else {
-		return Err(Errors::InvalidPath {path: options.path.clone()})?;
+		return Err(Errors::InvalidPath {path: options.path.clone()}.into());
     }
     
     Ok(())
