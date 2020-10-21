@@ -1304,13 +1304,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "egui_test_crate"
-version = "0.1.0"
-dependencies = [
- "egui",
-]
-
-[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

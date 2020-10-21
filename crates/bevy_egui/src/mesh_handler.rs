@@ -59,9 +59,6 @@ impl MeshHandler {
         attributes: Vec<VertexAttribute>,
         fill_missing_attributes: bool,
     ) {
-        // println!("Vertex colors: {:?}", attributes[3]);
-        // println!("Vertex attributes: {:?}", attributes);
-        // println!("Vertex uvs: {:?}", attributes[2]);
         let length = attributes.first().map(|a| a.values.len()).unwrap_or(0);
         self.vertex_bytes.clear();
         self.vertex_bytes.resize(self.vertex_buffer_descriptor.stride as usize * length, 0);

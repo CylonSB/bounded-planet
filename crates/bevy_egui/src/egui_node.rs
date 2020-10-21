@@ -24,34 +24,19 @@ const FAKE_RAW_INPUT: egui::RawInput = egui::RawInput {
     events: Vec::new()
 };
 
+// TODO: change this to use an Option<Handle<Texture>> with a shader def so we don't have this weird default crap
 // TODO: finally split into separate components for the egui rendering passes and the egui render resources
 /// Represents the egui rendering passes and systems.
 /// Entities with this component are expected to represent rendering to the specified context.
 /// This node, with the context name intended for entities to operate on, is also added as a system node.
 #[derive(Clone, RenderResources, ShaderDefs)]
 pub struct EguiNode {
-    // #[shader_def]
-    // pub texture: Option<Handle<Texture>>,
     pub texture: Handle<Texture>,
     #[render_resources(ignore)]
     pub texture_hash: u64
 }
 
 impl EguiNode {
-    // /// Given an egui context and the texture assets, creates a texture based on the egui context
-    // pub(crate) fn new_from_context(context: &Arc<egui::Context>, textures: &mut Assets<Texture>) -> Self {
-    //     let egui_texture = context.texture();
-
-    //     Self {
-    //         texture: Some(textures.add(Texture::new(
-    //             Vec2::new(egui_texture.width as _, egui_texture.height as _),
-    //             egui_texture.pixels.clone(),
-    //             TextureFormat::R8Unorm,
-    //         ))),
-    //         texture_hash: egui_texture.version,
-    //     }
-    // }
-
     /// Given an egui context and the texture assets, creates a texture based on the egui context
     pub(crate) fn initial_default(resources: &Resources) -> Self {
         let mut textures = resources.get_mut::<Assets<Texture>>().unwrap();
@@ -73,15 +58,6 @@ impl EguiNode {
         }
     }
 }
-
-// impl Default for EguiNode {
-//     fn default() -> Self {
-//         Self {
-//             texture: Some(Handle::default()),
-//             texture_hash: 0
-//         }
-//     }
-// }
 
 use std::ops::Range;
 
@@ -128,16 +104,6 @@ impl Default for EguiComponents {
                             bind_group: 2,
                             binding: 0
                         },
-                        // // Texture
-                        // DynamicBinding {
-                        //     bind_group: 1,
-                        //     binding: 0,
-                        // },
-                        // // Sampler
-                        // DynamicBinding {
-                        //     bind_group: 1,
-                        //     binding: 1,
-                        // }
                     ],
                     ..Default::default()
                 },
@@ -190,15 +156,6 @@ impl EguiComponents {
     }
 }
 
-// impl EguiComponents {
-//     pub fn from_node(node: EguiNode) -> Self {
-//         Self {
-//             egui_node: node,
-//             ..Default::default()
-//         }
-//     }
-// }
-
 #[derive(Clone, Default)]
 pub struct EguiSystemNode {
     /// The egui context this is attached to
@@ -240,9 +197,8 @@ impl SystemNode for EguiSystemNode {
 
                 mesh: None,
                 mesh_handler: MeshHandler::default(),
-                texture: None,
+                egui_node: None,
                 // texture_handler: TextureHandler::default(),
-                temp_texture_hash: 0,
             }
         );
 
@@ -264,9 +220,8 @@ struct EguiSystemNodeState {
     /// The handler which processes updates to the mesh drawn to.
     mesh_handler: MeshHandler,
 
-    /// Handle to the texture used for font data on this egui.
-    texture: Option<Handle<Texture>>,
-    temp_texture_hash: u64,
+    /// Handle to the egui node which stores texture data of this egui.
+    egui_node: Option<Handle<EguiNode>>,
     // The Handler which processes updates to the texture of font data.
     // texture_handler: TextureHandler,
 }
@@ -277,6 +232,7 @@ impl FromResources for EguiSystemNodeState {
     }
 }
 
+// TODO: modify EguiSystemNodeState so that it only holds onto the draw entity and gets the other information each tick from the query
 fn egui_node_system(
     mut state: Local<EguiSystemNodeState>,
     mut frame_init_event: ResMut<Events<crate::EguiFrameStartEvent>>,
@@ -299,9 +255,8 @@ fn egui_node_system(
         command_queue,
         mesh,
         mesh_handler,
-        texture,
+        egui_node,
         // texture_handler,
-        temp_texture_hash,
     } = &mut *state;
 
     let render_resource_context = &**render_resource_context;
@@ -322,54 +277,29 @@ fn egui_node_system(
         entity
     });
 
-    // Get the texture asset for storing font data of this gui, or create it if we don't have it
-    let (texture) = texture.get_or_insert_with(|| {
-        println!("Starting to set texture...");
+    // Get the egui node on the draw entity, or grab it from the query if we don't yet have it
+    let egui_node = egui_node.get_or_insert_with(|| {
         let mut entity_query = query.entity(*draw_entity).unwrap();
         let (_, _, node, ..) = entity_query.get().unwrap();
 
-        // match node.texture {
-        //     // Some(handle) => {
-        //     //     panic!("Expected that there's no existing texture! Fix this later :)")
-        //     // },
-        //     Some(_) | None => {
-        //         println!("Initial texture hash: {}", node.texture_hash);
-        //         // Set the node to a new node with a proper texture created for it
-        //         *node = EguiNode::new_from_context(context, &mut textures);
-        //         *temp_texture_hash = node.texture_hash;
+        *node
+    });
 
-        //         println!("New texture hash: {}", node.texture_hash);
-
-        //         return node.texture.expect("Literally just set texture to exist!");
-        //     }
-        // }
-
-        let node = nodes.get_mut(&node).unwrap();
+    if let Some(node) = nodes.get_mut(egui_node) {
         let egui_texture = context.texture();
 
         if egui_texture.version != node.texture_hash {
             println!("Texture has changed since first initialization!");
             let tex = textures.get_mut(&node.texture).unwrap();
-            tex.size = Vec2::new(egui_texture.width as _, egui_texture.height as _);
 
+            tex.size = Vec2::new(egui_texture.width as _, egui_texture.height as _);
             tex.data = egui_texture.pixels.clone();
 
             node.texture_hash = egui_texture.version;
         } else {
             println!("Texture has _not_ changed since start!");
         }
-
-        node.texture
-    });
-
-    // if context.texture().version != *temp_texture_hash {
-    //     println!("Texture has changed at runtime! We gotta actually update it now...");
-    //     panic!();
-    // }
-
-    // println!("Original texture pixels: {:?}", context.texture().pixels);
-
-    // println!("Texture data: {:?}", textures.get_mut(texture).unwrap().data);
+    }
 
     // Get the mesh asset to use for rendering this gui, or create it if it doesn't exist
     let mesh = mesh.get_or_insert_with(|| {
@@ -377,34 +307,15 @@ fn egui_node_system(
         let mut entity_query = query.entity(*draw_entity).unwrap();
         let (_, _, _, mesh, ..) = entity_query.get().unwrap();
 
-        // let new_mesh = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
-        // println!("Old mesh handle before:   {:?}", old_mesh);
-        // *old_mesh = new_mesh;
-        // println!("Old mesh handle after:    {:?}", old_mesh);
-        // println!("New mesh handle:          {:?}", new_mesh);
-        // println!("The above two should be identical!!!!!");
-
         *mesh
     });
 
-
     let (_output, jobs) = context.end_frame();
-
-    // let new_jobs_descriptor = EguiJobsDescriptor::default();
-    // for (_, triangles) in &jobs {
-    //     let indices_range = 
-    //     new_jobs_descriptor.jobs.push(
-            
-    //     )
-    // }
 
     let mut entity_query = query.entity(*draw_entity)
         .expect("Unable to make query from egui draw entity!");
     let (_, mut jobs_descriptor, node, _, pipelines) = entity_query.get()
         .expect("Egui draw entity did not have a RenderPipelines or EguiJobsDescriptor for some reason?");
-
-    let tex = textures.get(texture);
-    println!("Texture from handle: ");
 
     // TODO: update mesh handler to use staging buffers via the command_queue
     mesh_handler.with_context(render_resource_context, *mesh)

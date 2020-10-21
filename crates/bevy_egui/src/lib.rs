@@ -17,7 +17,7 @@ mod base_setup;
 use base_setup::{EGUI_PIPELINE_HANDLE, EguiCameraComponents, EguiRenderGraphBuilder};
 
 mod mesh_handler;
-// mod texture_handler;
+mod texture_handler;
 
 mod egui_node;
 use egui_node::{EguiComponents, EguiJobsDescriptor, EguiNode};
