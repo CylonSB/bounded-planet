@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::diagnostic::PrintDiagnosticsPlugin;
 use bevy::wgpu::diagnostic::WgpuResourceDiagnosticsPlugin;
-use bevy_egui::*;
+use bevy_egui::prelude::*;
 
 fn main() {
     App::build()

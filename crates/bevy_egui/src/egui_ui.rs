@@ -1,5 +1,3 @@
-use std::{collections::HashMap, sync::Arc};
-
 use bevy::prelude::*;
 
 pub struct EguiUi {
@@ -7,9 +5,9 @@ pub struct EguiUi {
 }
 
 impl FromResources for EguiUi {
-    fn from_resources(resources: &Resources) -> Self {
+    fn from_resources(_resources: &Resources) -> Self {
         Self {
-            ui: None
+            ui: None,
         }
     }
 }
@@ -18,7 +16,7 @@ pub(crate) struct EguiFrameStartEvent {
     pub(crate) new_ui: egui::Ui,
 }
 
-// TODO: extend the concept to incorporate a map of arbitrary names to egui's, removing the current singleton restriction
+// TODO(#56): move egui context updates to the start of the frame along with utilizing a context map, to remove the singleton restriction
 pub(crate) fn egui_state_update(
     mut frame_start_events: ResMut<Events<EguiFrameStartEvent>>,
     mut egui: ResMut<EguiUi>,
@@ -35,20 +33,4 @@ pub(crate) fn egui_state_update(
 
     // Replace the old ui with the new one from the event
     egui.ui = Some(new_ui);
-}
-
-pub struct EguiContextEntityMap {
-    contexts: HashMap<usize, Entity>,
-}
-
-impl EguiContextEntityMap {
-    pub fn get_entity(&self, context: &Arc<egui::Context>) -> Option<Entity> {
-        let ptr_value = Arc::as_ptr(context) as usize;
-        self.contexts.get(&ptr_value).copied()
-    }
-
-    pub fn insert_entity(&mut self, context: &Arc<egui::Context>, entity: Entity) {
-        let ptr_value = Arc::as_ptr(context) as usize;
-        self.contexts.insert(ptr_value, entity);
-    }
 }

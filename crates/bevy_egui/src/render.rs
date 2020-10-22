@@ -1,29 +1,44 @@
-use bevy::{asset::{Assets, Handle}, prelude::Commands, prelude::GlobalTransform, prelude::System, prelude::Transform, prelude::World, render::camera::Camera, render::camera::OrthographicProjection, render::camera::VisibleEntities, render::camera::WindowOrigin, render::render_graph::AssetRenderResourcesNode, render::render_graph::Node, render::render_graph::ResourceSlots, render::render_graph::SystemNode, render::renderer::RenderContext};
-use bevy::render::shader::ShaderDefs;
-use bevy::ecs::Resources;
-use bevy::math::Vec2;
-use bevy::render::{
-    camera::ActiveCameras,
-    pass::{
-        LoadOp, Operations, PassDescriptor, RenderPassDepthStencilAttachmentDescriptor,
-        TextureAttachment,
-    },
-    pipeline::*,
-    prelude::Msaa,
-    renderer::RenderResources,
-    render_graph::{
-        base, CameraNode, PassNode, RenderGraph, RenderResourcesNode, WindowSwapChainNode,
-        WindowTextureNode,
-    },
-    shader::{Shader, ShaderStage, ShaderStages},
-    texture::TextureFormat,
+use bevy::{
+    prelude::*,
+    render::{
+        camera::{
+            ActiveCameras,
+            Camera,
+            OrthographicProjection,
+            VisibleEntities,
+            WindowOrigin
+        },
+        pass::{
+            LoadOp,
+            Operations,
+            PassDescriptor,
+            RenderPassDepthStencilAttachmentDescriptor,
+            TextureAttachment,
+        },
+        pipeline::*,
+        render_graph::{
+            base,
+            AssetRenderResourcesNode,
+            CameraNode,
+            NodeId,
+            PassNode,
+            RenderGraph,
+            WindowSwapChainNode,
+            WindowTextureNode,
+        },
+        shader::{
+            Shader,
+            ShaderStage,
+            ShaderStages,
+        },
+        texture::TextureFormat
+    }
 };
 
-use bevy::prelude::*;
-
-use bevy::ecs::IntoQuerySystem;
-
-use crate::egui_node::{EguiNode, EguiSystemNode};
+use crate::egui_node::{
+    EguiNode,
+    EguiSystemNode
+};
 
 #[derive(Bundle)]
 pub struct EguiCameraComponents {
@@ -201,11 +216,25 @@ impl EguiRenderGraphBuilder for RenderGraph {
 
         // Add the egui nodes and wire them up to the egui pass
         self.add_system_node(node::EGUI_NODE_ID, AssetRenderResourcesNode::<EguiNode>::new(false));
-        self.add_system_node(node::EGUI_SYSTEM_NODE_ID, EguiSystemNode::default());
 
         self.add_node_edge(node::EGUI_NODE_ID, node::EGUI_PASS_ID).unwrap();
-        self.add_node_edge(node::EGUI_SYSTEM_NODE_ID, node::EGUI_PASS_ID).unwrap();
         
         self
+    }
+}
+
+pub trait AddEguiSystemNode {
+    /// Takes a wildcard lifetime since otherwise the lifetime of the name would have to equal the lifetime of the self borrow
+    fn add_egui_system_node(&mut self, node: EguiSystemNode) -> NodeId;
+}
+
+impl AddEguiSystemNode for RenderGraph {
+    fn add_egui_system_node(&mut self, node: EguiSystemNode) -> NodeId {
+        let formatted_name = format!("{}_{:?}", node::EGUI_SYSTEM_NODE_ID, node.context.id);
+
+        let id = self.add_system_node(formatted_name.clone(), node);
+        self.add_node_edge(formatted_name, node::EGUI_PASS_ID).unwrap();
+
+        id
     }
 }
