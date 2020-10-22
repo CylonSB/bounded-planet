@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use tracing::trace;
+
 pub struct EguiUi {
     pub ui: Option<egui::Ui>,
 }
@@ -25,10 +27,10 @@ pub(crate) fn egui_state_update(
     let new_ui = frame_start_events.drain().next();
 
     let EguiFrameStartEvent { new_ui } = if egui.ui.is_none() && new_ui.is_none() {
-        println!("Didn't find a ui this time...");
+        trace!("Did not find a UI this tick!");
         return;
     } else {
-        new_ui.expect("Didn't recieve a Ui to use for next frame! Without a Ui, nothing works...")
+        new_ui.expect("Previously an egui ui has been recieved, but one hasn't been recieved this frame. This can't happen!")
     };
 
     // Replace the old ui with the new one from the event

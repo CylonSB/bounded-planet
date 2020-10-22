@@ -1,10 +1,32 @@
 use std::sync::Arc;
 
-use bevy::{prelude::*, render::{draw::DrawContext, render_graph::RenderGraph, renderer::RenderResourceBindings}};
+use bevy::{
+    prelude::*,
+    render::{
+        draw::DrawContext,
+        render_graph::RenderGraph,
+        renderer::RenderResourceBindings
+    }
+};
 
-use egui::{Rgba, Slider, containers::Window};
+use egui::{
+    Rgba,
+    Slider,
+    containers::Window
+};
 
-use crate::{render::AddEguiSystemNode, components::EguiJobsDescriptor, egui_node::EguiNode, egui_node::{EguiSystemNode, FAKE_RAW_INPUT}, egui_ui::EguiUi};
+use tracing::trace;
+
+use crate::{
+    render::AddEguiSystemNode,
+    components::EguiJobsDescriptor,
+    egui_node::EguiNode,
+    egui_node::{
+        EguiSystemNode,
+        FAKE_RAW_INPUT
+    },
+    egui_ui::EguiUi
+};
 
 pub fn egui_test_system(
     mut egui: ResMut<EguiUi>,
@@ -16,7 +38,7 @@ pub fn egui_test_system(
 
     let mut value = 1.0;
 
-    println!("Rendering ui stuffs!");
+    trace!("Rendering ui stuffs!");
 
     Window::new("Debug").fixed_pos([500.0, 200.0]).show(ui.ctx(), |ui| {
         ui.label(format!("Hello, world {}", 123));

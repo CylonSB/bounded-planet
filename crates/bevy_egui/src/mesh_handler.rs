@@ -34,6 +34,7 @@ use egui::{
     }
 };
 
+use tracing::error;
 
 use crate::components::EguiJobsDescriptor;
 
@@ -120,7 +121,7 @@ impl MeshHandler {
                 }
                 None => {
                     if !fill_missing_attributes {
-                        println!("Missing vertex attribute: {}", vertex_attribute.name);
+                        error!("Missing vertex attribute: {}", vertex_attribute.name);
                     }
                 }
             }

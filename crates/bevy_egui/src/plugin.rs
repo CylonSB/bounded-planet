@@ -33,6 +33,8 @@ use crate::{
     }
 };
 
+use tracing::trace;
+
 #[derive(Debug, Default)]
 pub struct EguiPlugin;
 
@@ -84,7 +86,7 @@ fn setup(
     world: &mut World,
     resources: &mut Resources,
 ) {
-    println!("Running setup...");
+    trace!("Running egui plugin setup function");
     let mut vertex_buffer_descriptors = resources.get_mut::<VertexBufferDescriptors>().unwrap();
 
     vertex_buffer_descriptors.set(BevyEguiVertex::as_vertex_buffer_descriptor().clone());

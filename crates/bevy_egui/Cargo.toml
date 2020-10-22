@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 bevy = "0.2.1"
 egui = "0.2.0"
+tracing = "0.1.21"
