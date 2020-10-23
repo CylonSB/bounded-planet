@@ -4,12 +4,15 @@ use bevy::app::ScheduleRunnerPlugin;
 use bevy::prelude::*;
 use structopt::StructOpt;
 use tracing::{Level, info};
-use bounded_planet::networking::{
-    components::Connection,
-    systems::{NetEventLoggerState, log_net_events},
-    events::{ReceiveEvent, SendEvent},
-    packets::{Packet, Ping, Pong, StreamType},
-    server::plugin::Network as NetworkPlugin
+use bounded_planet::{
+    land::systems::{WorldTileDataState, handle_world_tile_data_requests, setup_world_mesh_data},
+    networking::{
+        components::Connection,
+        systems::{NetEventLoggerState, log_net_events},
+        events::{ReceiveEvent, SendEvent},
+        packets::{Packet, Ping, Pong, StreamType},
+        server::plugin::Network as NetworkPlugin
+    }
 };
 
 #[derive(StructOpt, Debug)]
@@ -44,6 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     // Create a Bevy app
     let mut app = App::build();
+
     app.add_plugin(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
         1.0 / 10.0,
     )));
@@ -55,10 +59,15 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
         addr: options.addr,
     });
 
+    app.add_startup_system(setup_world_mesh_data.system());
+
     app.add_system(send_pings.system());
 
     app.init_resource::<PongLoggerState>();
     app.add_system(log_pongs.system());
+
+    app.init_resource::<WorldTileDataState>();
+    app.add_system(handle_world_tile_data_requests.system());
 
     app.init_resource::<NetEventLoggerState>();
     app.add_system(log_net_events.system());

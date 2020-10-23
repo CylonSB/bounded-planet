@@ -1,12 +1,14 @@
 use std::time::SystemTime;
-
 use serde::{Deserialize, Serialize};
+
+use crate::land::MeshData;
 
 /// Uniquely identifies a single unidirectional stream of data within a single network connection
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub enum StreamType {
     TextChat,
     PingPong,
+    WorldTileData
 }
 
 /// Enum of all packets in the network protocol
@@ -16,7 +18,9 @@ pub enum Packet {
     AuthResponse(AuthResponse),
     TextChat(TextChat),
     Ping(Ping),
-    Pong(Pong)
+    Pong(Pong),
+    WorldTileDataRequest(WorldTileDataRequest),
+    WorldTileData(WorldTileData)
 }
 
 /// Ping packet, expects a returned "Pong" response
@@ -61,4 +65,18 @@ pub enum AuthResponse {
 pub struct TextChat {
     pub index: u64,
     pub message: String,
+}
+
+/// World tile data request packet, sent by the client to the server
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WorldTileDataRequest {
+    pub x: u32,
+    pub y: u32,
+    pub lod: u8,
+}
+
+/// World tile data packet, requested by the client
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WorldTileData {
+    pub mesh_data: MeshData
 }
