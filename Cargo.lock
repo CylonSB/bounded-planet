@@ -492,9 +492,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_rapier3d"
-version = "0.2.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e394964bc10d4bf2a42cfd5921b8feb9175a6d6ea8cc01cd857398f49bbb06b"
+checksum = "97c45d46381472a8303d9e6fb0ce41a14aa7395f4d2dd35480a94f5db7161459"
 dependencies = [
  "bevy",
  "concurrent-queue",
@@ -2993,9 +2993,9 @@ checksum = "a871f1e45a3a3f0c73fb60343c811238bb5143a81642e27c2ac7aac27ff01a63"
 
 [[package]]
 name = "rapier3d"
-version = "0.1.5"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3412d5851335e7540d738cc7a9b6538dd2d2138dc589a141cc37402d91c5eac8"
+checksum = "8b877824e076f6f9ab18760107201781789ed25a7585c36e800313522e07e83b"
 dependencies = [
  "approx",
  "arrayvec",
@@ -3416,9 +3416,9 @@ dependencies = [
 
 [[package]]
 name = "simba"
-version = "0.2.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1585d831b5c904e42c4df7a4fcfa03e4b56a8cfa445aff0a04f4effe397ecac9"
+checksum = "051b345c9ec09734622cbb49e20dfcf72c9b55e473f0ca6a8025409e37c25fb8"
 dependencies = [
  "approx",
  "num-complex",
