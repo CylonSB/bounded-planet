@@ -18,22 +18,11 @@ use bevy::{
 };
 
 use crate::{
-    egui_ui::EguiFrameStartEvent,
-    mesh_handler::MeshHandler,
     components::EguiJobsDescriptor,
+    egui_ui::EguiFrameStartEvent,
+    systems::EguiInput,
+    mesh_handler::MeshHandler,
     systems::EguiContext
-};
-
-// TODO(#60) actually give real input to egui
-/// Default fake input so the gui can at least work.
-pub const FAKE_RAW_INPUT: egui::RawInput = egui::RawInput {
-    mouse_down: false,
-    mouse_pos: None,
-    scroll_delta: egui::math::vec2(0.0, 0.0),
-    screen_size: egui::math::vec2(1280.0, 720.0),
-    pixels_per_point: Some(1.0),
-    time: 0.0,
-    events: Vec::new()
 };
 
 // TODO(#57): finally split into separate components for the egui rendering passes and the egui render resources
@@ -52,10 +41,11 @@ impl EguiNode {
     /// Given an egui context and the texture assets, creates a texture based on the egui context
     pub(crate) fn initial_default(resources: &Resources) -> Self {
         let mut textures = resources.get_mut::<Assets<Texture>>().unwrap();
+        let egui_input = resources.get::<EguiInput>().unwrap();
 
         let mut context = egui::Context::new();
 
-        let _ = context.begin_frame(FAKE_RAW_INPUT);
+        let _ = context.begin_frame(egui_input.raw_input.clone());
         let _ = context.end_frame();
 
         let egui_texture = context.texture();
@@ -131,14 +121,19 @@ impl EguiSystemNodeState {
 
 impl FromResources for EguiSystemNodeState {
     fn from_resources(_: &Resources) -> Self {
-        panic!("This is an unneeded implementation and shouldn't ever be run!");
+        // This trait impl only exists because Local<T> requires that T: FromResources, even though
+        // in the SystemNode impl for EguiSystemNode above, we manually insert the resource with the value we want.
+        // Because of this, this function should never run. If it does, something has changed in bevy and we need to fix this!
+        unimplemented!("This is an unneeded implementation and shouldn't ever be run!");
     }
 }
 
-/// Update system for a egui system node
+/// Update system for an egui system node
 #[allow(clippy::type_complexity)]
+#[allow(clippy::clippy::too_many_arguments)]
 fn egui_node_system(
     mut state: Local<EguiSystemNodeState>,
+    egui_input: Res<EguiInput>,
     mut frame_init_event: ResMut<Events<EguiFrameStartEvent>>,
 
     mut nodes: ResMut<Assets<EguiNode>>,
@@ -199,6 +194,6 @@ fn egui_node_system(
     // TODO(#60) actually give real input to egui, should require the context to actually be owned by the state update system and sent here rather than the other way around
     // Now that frame update crap is over, begin a new frame and send the Ui object away to be used
     frame_init_event.send(EguiFrameStartEvent {
-        new_ui: context.begin_frame(FAKE_RAW_INPUT)
+        new_ui: context.begin_frame(egui_input.raw_input.clone())
     });
 }

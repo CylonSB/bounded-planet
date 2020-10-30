@@ -139,7 +139,9 @@ pub mod camera {
     pub const EGUI_CAMERA_NAME: &str = "EguiCamera";
 }
 
+/// Helper trait only designed to be implemented on [`RenderGraph`], for adding egui stuff to the render graph.
 pub trait EguiRenderGraphBuilder {
+    /// Add egui nodes and wiring to the [`RenderGraph`].
     fn add_egui_graph(&mut self, resources: &Resources) -> &mut Self;
 }
 
@@ -223,8 +225,10 @@ impl EguiRenderGraphBuilder for RenderGraph {
     }
 }
 
+/// Extension trait for [`RenderGraph`] that takes an [`EguiSystemNode`] and wires it up to the render graph
+/// with an automatically generated unique name, meaning it won't conflict with any other nodes.
 pub trait AddEguiSystemNode {
-    /// Takes a wildcard lifetime since otherwise the lifetime of the name would have to equal the lifetime of the self borrow
+    /// Wires [`EguiSystemNode`] into the render graph with a auto-generated unique name.
     fn add_egui_system_node(&mut self, node: EguiSystemNode) -> NodeId;
 }
 

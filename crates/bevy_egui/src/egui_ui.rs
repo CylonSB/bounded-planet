@@ -30,7 +30,8 @@ pub(crate) fn egui_state_update(
         trace!("Did not find a UI this tick!");
         return;
     } else {
-        new_ui.expect("Previously an egui ui has been recieved, but one hasn't been recieved this frame. This can't happen!")
+        // This should never occur. If it does, something has broke bevy and the [`EguiSystemNode`] that sends this event.
+        new_ui.expect("Previously an egui ui has been received, but one hasn't been received this frame!")
     };
 
     // Replace the old ui with the new one from the event

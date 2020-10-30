@@ -1,17 +1,41 @@
 use bevy::prelude::*;
-use bevy::diagnostic::PrintDiagnosticsPlugin;
-use bevy::wgpu::diagnostic::WgpuResourceDiagnosticsPlugin;
 use bevy_egui::prelude::*;
 
 fn main() {
+    tracing::subscriber::set_global_default(
+        tracing_subscriber::FmtSubscriber::builder()
+            .with_max_level(tracing::Level::WARN)
+            .finish(),
+    )
+    .expect("Failed to configure logging");
+
     App::build()
         // .add_resource(Msaa { samples: 4 })
         .add_default_plugins()
-        .add_plugin(WgpuResourceDiagnosticsPlugin::default())
-        .add_plugin(PrintDiagnosticsPlugin::default())
         .add_plugin(EguiPlugin)
         .add_startup_system(setup.system())
+        .add_system(egui_test_system.system())
         .run();
+}
+
+fn egui_test_system(
+    mut egui: ResMut<EguiUi>,
+) {
+    let ui = match egui.ui.as_mut() {
+        None => return,
+        Some(ui) => ui
+    };
+
+    let mut value = 1.0;
+
+    egui::Window::new("Debug").fixed_pos([500.0, 200.0]).show(ui.ctx(), |ui| {
+        ui.label(format!("Hello, world {}", 123));
+        ui.add(egui::widgets::Label::new("Hello world!").heading());
+        if ui.add(egui::widgets::Button::new("Save").fill(Some(egui::Rgba::RED.into()))).clicked {
+            println!("Save clicked!");
+        }
+        ui.add(egui::Slider::f32(&mut value, 0.0..=1.0).text("float"));
+    });
 }
 
 /// set up a simple 3D scene
