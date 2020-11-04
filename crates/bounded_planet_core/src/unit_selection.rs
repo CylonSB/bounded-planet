@@ -32,6 +32,7 @@ impl Plugin for UnitSelectionPlugin {
     }
 }
 
+// TODO(#68): rather than managing selection with events, it should be component-oriented
 /// Represents the selection of a given entity, or that nothing was selected
 #[derive(Debug, Clone)]
 pub struct SelectionEvent {
@@ -125,6 +126,7 @@ fn selection_update(
         if let Some((hit_collider, _, _)) = query_pipeline.cast_ray(&colliders, &ray, std::f32::MAX) {
             // The raycast hit something!
 
+            // TODO: #67 we should have a real map between entity <-> collider handle used in unit selection
             // Search for an entity with the same collider handle as the collider we hit
             let mut colliders_query_iter = colliders_query.iter();
             let query_search = colliders_query_iter.into_iter()
