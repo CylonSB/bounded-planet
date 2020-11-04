@@ -90,11 +90,12 @@ fn selection_update(
         state.cursor_position = *position;
     }
     
+    // TODO(#65): when a proper input handler exists, use it for the unit selection functionality
     if mouse_button_inputs.just_pressed(MouseButton::Left) {
         // If the user clicks at all, clear the selection state. Aka, deselect whatever is selected
         selection_state.swap_and_clear_current();
         
-        // TODO: properly figure out _which_ camera was intended to be used
+        // TODO(#64): properly figure out _which_ camera was intended to be used
         // Search for a camera with the default 3d camera name, which should be the "main" camera in a 3d game
         let mut camera_query_iter = camera_query.iter();
         let (camera, camera_transform) = camera_query_iter.into_iter()
