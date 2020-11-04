@@ -200,6 +200,7 @@ impl Default for EguiInput {
     }
 }
 
+// TODO(#66): when a proper input handler exists, use it for the egui input gathering system
 /// Gathers all inputs to update [`EguiInput`] so egui can start frames.
 pub fn egui_gather_input(
     mut state: Local<GatherEguiInputState>,
