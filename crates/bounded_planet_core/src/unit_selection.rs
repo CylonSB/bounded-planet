@@ -126,7 +126,7 @@ fn selection_update(
         if let Some((hit_collider, _, _)) = query_pipeline.cast_ray(&colliders, &ray, std::f32::MAX) {
             // The raycast hit something!
 
-            // TODO: #67 we should have a real map between entity <-> collider handle used in unit selection
+            // TODO(#67): we should have a real map between entity <-> collider handle used in unit selection
             // Search for an entity with the same collider handle as the collider we hit
             let mut colliders_query_iter = colliders_query.iter();
             let query_search = colliders_query_iter.into_iter()
