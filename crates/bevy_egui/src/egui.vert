@@ -13,7 +13,7 @@ layout(location = 1) out vec4 v_Color;
 out gl_PerVertex
 {
     vec4 gl_Position;
-    // float gl_ClipDistance[4];
+    float gl_ClipDistance[4];
 };
 
 layout(set = 0, binding = 0) uniform Camera {
@@ -38,15 +38,13 @@ vec4 linear_from_srgba(vec4 srgba) {
 void main() {
     vec2 pos = vec2(BevyEguiVertex_Position.x, BevyEguiVertex_Position.y);
 
-    // // step(edge, x) returns ith 0 if x_i < edge_i, otherwise ith 1
-    // // Basically, returns 0 if outside the clip, 1 if inside
-    // vec2 clip01 = step(pos, BevyEguiVertex_ClipMin) - vec2(0.5, 0.5);
-    // vec2 clip23 = step(BevyEguiVertex_ClipMax, pos) - vec2(0.5, 0.5);
+    vec2 clip01 = pos - BevyEguiVertex_ClipMin;
+    vec2 clip23 = BevyEguiVertex_ClipMax - pos;
 
-    // gl_ClipDistance[0] = clip01.x;
-    // gl_ClipDistance[1] = clip01.y;
-    // gl_ClipDistance[2] = clip23.x;
-    // gl_ClipDistance[3] = clip23.y;
+    gl_ClipDistance[0] = clip01.x;
+    gl_ClipDistance[1] = clip01.y;
+    gl_ClipDistance[2] = clip23.x;
+    gl_ClipDistance[3] = clip23.y;
     
     v_Uv = BevyEguiVertex_Uv;
     v_Color = linear_from_srgba(BevyEguiVertex_Color);
