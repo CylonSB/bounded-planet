@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use bevy::prelude::{Commands, Entity, EventReader, Events, ResMut};
 use quinn::{IncomingUniStreams, crypto::rustls::TlsSession, generic::RecvStream};
@@ -276,7 +275,7 @@ impl Connected {
             let se = match pkt {
                 Ok(pkt) => event_sender.send(ReceiveEvent::ReceivedPacket {
                     connection: connection_id,
-                    data: Arc::new(pkt),
+                    data: pkt,
                 }),
                 Err(err) => {
                     event_sender.send(ReceiveEvent::NetworkError(

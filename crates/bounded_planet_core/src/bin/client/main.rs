@@ -1,4 +1,4 @@
-use std::{fs, net::ToSocketAddrs, path::PathBuf, sync::Arc};
+use std::{fs, net::ToSocketAddrs, path::PathBuf};
 use structopt::StructOpt;
 use url::Url;
 use tracing::{Level, info};
@@ -128,11 +128,11 @@ fn respond_to_pings(
 ) {
     for evt in state.event_reader.iter(&receiver) {
         if let ReceiveEvent::ReceivedPacket { ref connection, data } = evt {
-            if let Packet::Ping(Ping { timestamp }) = **data {
+            if let Packet::Ping(ping) = data {
                 sender.send(SendEvent::SendPacket {
                     connection: *connection,
                     stream: StreamType::PingPong,
-                    data: Arc::new(Packet::Pong(Pong { timestamp }))
+                    data: Packet::Pong(Pong { timestamp: ping.timestamp })
                 });
                 info!("Received Ping, sending pong. {:?}", connection);
             }
@@ -157,7 +157,7 @@ fn handle_tile_received(
 ) {
     for evt in state.event_reader.iter(&receiver) {
         if let ReceiveEvent::ReceivedPacket { connection: ref _connection, data } = evt {
-            if let Packet::WorldTileData(WorldTileData { mesh_data }) = (**data).clone() {
+            if let Packet::WorldTileData(WorldTileData { mesh_data }) = data {
                 info!("Loading tile received from server.");
                 let land_texture_top_handle = asset_server
                     .load_sync(&mut textures, "content/textures/CoveWorldTop.png")
@@ -166,11 +166,11 @@ fn handle_tile_received(
                     mesh: meshes.add(Mesh {
                         primitive_topology: bevy::render::pipeline::PrimitiveTopology::TriangleList,
                         attributes: vec![
-                            VertexAttribute::position(mesh_data.vertices),
-                            VertexAttribute::normal(mesh_data.normals),
-                            VertexAttribute::uv(mesh_data.uvs),
+                            VertexAttribute::position(mesh_data.vertices.clone()),
+                            VertexAttribute::normal(mesh_data.normals.clone()),
+                            VertexAttribute::uv(mesh_data.uvs.clone()),
                         ],
-                        indices: Some(mesh_data.indices),
+                        indices: Some(mesh_data.indices.clone()),
                     }),
                     material: materials.add(StandardMaterial {
                         albedo_texture: Some(land_texture_top_handle),
@@ -202,12 +202,12 @@ fn request_tile_on_connected(
             sender.send(SendEvent::SendPacket {
                 connection: *connection,
                 stream: StreamType::WorldTileData,
-                data: Arc::new(Packet::WorldTileDataRequest(WorldTileDataRequest {
+                data: Packet::WorldTileDataRequest(WorldTileDataRequest {
                     //todo(#46): Respect request coordinates (x, y lod)
                     x: 0,
                     y: 0,
                     lod: 0
-                }))
+                })
             });
         }
     }

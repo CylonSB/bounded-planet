@@ -1,4 +1,4 @@
-use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc, time::SystemTime};
+use std::{fs, net::SocketAddr, path::PathBuf, time::SystemTime};
 use std::time::Duration;
 use bevy::app::ScheduleRunnerPlugin;
 use bevy::prelude::*;
@@ -10,7 +10,7 @@ use bounded_planet::{
         components::Connection,
         systems::{NetEventLoggerState, log_net_events},
         events::{ReceiveEvent, SendEvent},
-        packets::{Packet, Ping, Pong, StreamType},
+        packets::{Packet, Ping, StreamType},
         server::plugin::Network as NetworkPlugin
     }
 };
@@ -109,9 +109,7 @@ fn send_pings(mut sender: ResMut<Events<SendEvent>>, conn: &Connection) {
     sender.send(SendEvent::SendPacket {
         connection: conn.id,
         stream: StreamType::PingPong,
-        data: Arc::new(
-            Packet::Ping(Ping::default())
-        ),
+        data: Packet::Ping(Ping::default())
     });
 }
 
@@ -123,9 +121,9 @@ pub struct PongLoggerState {
 fn log_pongs(mut state: ResMut<PongLoggerState>, receiver: ResMut<Events<ReceiveEvent>>) {
     for evt in state.event_reader.iter(&receiver) {
         if let ReceiveEvent::ReceivedPacket { data, .. } = evt {
-            if let Packet::Pong(Pong { timestamp }) = **data {
+            if let Packet::Pong(ref pong) = *data {
                 let time_sent = SystemTime::UNIX_EPOCH.checked_add(
-                    Duration::from_millis(timestamp as u64)
+                    Duration::from_millis(pong.timestamp as u64)
                 ).expect("Overflowed SystemTime");
 
                 let time_now = SystemTime::now();

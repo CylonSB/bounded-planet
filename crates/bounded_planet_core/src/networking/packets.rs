@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::{sync::Arc, time::SystemTime};
 use serde::{Deserialize, Serialize};
 
 use crate::land::MeshData;
@@ -78,5 +78,5 @@ pub struct WorldTileDataRequest {
 /// World tile data packet, requested by the client
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WorldTileData {
-    pub mesh_data: MeshData
+    pub mesh_data: Arc<MeshData>
 }

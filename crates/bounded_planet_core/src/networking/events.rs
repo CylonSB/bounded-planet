@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::networking::{id::ConnectionId, packets::Packet};
 use quinn::{ConnectionError, crypto::rustls::TlsSession, generic::SendStream};
 use tokio::sync::mpsc::UnboundedSender;
@@ -34,7 +32,7 @@ pub enum NetworkError
     StreamSenderError {
         connection: ConnectionId,
         stream: Option<StreamType>,
-        failed_packet: Arc<Packet>,
+        failed_packet: Packet,
     },
 
     /// An error occurred in quinn while attempting to connect
@@ -52,7 +50,7 @@ pub enum ReceiveEvent
     /// A packet has arrived in a stream
     ReceivedPacket {
         connection: ConnectionId,
-        data: Arc<Packet>,
+        data: Packet,
     },
 
     /// A connection has closed
@@ -73,14 +71,14 @@ pub enum SendEvent
     SendPacket {
         connection: ConnectionId,
         stream: StreamType,
-        data: Arc<Packet>,
+        data: Packet,
     },
 
     /// Send a packet through a new stream which is created just for this packet.
     /// This should be used for very large packets.
     TransferPacket {
         connection: ConnectionId,
-        data: Arc<Packet>,
+        data: Packet,
     }
 }
 
@@ -146,7 +144,7 @@ impl SendEvent {
 
     }
 
-    async fn send_transfer(mut sender: SendStream<TlsSession>, data: Arc<Packet>) {
+    async fn send_transfer(mut sender: SendStream<TlsSession>, data: Packet) {
         // Both of these method generate a result which is discarded.
         // Results from transfers are not sent anywhere as that could potentially result in
         // errors from a connection arriving in the ECS after is has closed!
