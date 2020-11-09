@@ -121,7 +121,7 @@ pub struct PongLoggerState {
 fn log_pongs(mut state: ResMut<PongLoggerState>, receiver: ResMut<Events<ReceiveEvent>>) {
     for evt in state.event_reader.iter(&receiver) {
         if let ReceiveEvent::ReceivedPacket { data, .. } = evt {
-            if let Packet::Pong(ref pong) = *data {
+            if let Packet::Pong(pong) = data {
                 let time_sent = SystemTime::UNIX_EPOCH.checked_add(
                     Duration::from_millis(pong.timestamp as u64)
                 ).expect("Overflowed SystemTime");
