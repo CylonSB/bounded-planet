@@ -158,8 +158,7 @@ pub struct UnitSelectionHighlighterPlugin;
 
 impl Plugin for UnitSelectionHighlighterPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app
-            .add_system(highlight_selected.system());
+        app.add_system(highlight_selected.system());
     }
 }
 
@@ -200,8 +199,6 @@ fn highlight_selected(
             let handle = query.get_mut::<Handle<StandardMaterial>>(entity).unwrap();
             let material = materials.get_mut(&handle).unwrap();
 
-
-            println!("Current material color: {:?}, new highlight color: {:?}", material.albedo, state.highlight_color);
             state.last_selected_color = Some(material.albedo);
             material.albedo = state.highlight_color;
         }
