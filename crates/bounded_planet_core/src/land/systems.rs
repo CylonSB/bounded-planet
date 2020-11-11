@@ -1,8 +1,13 @@
 use std::sync::Arc;
 use bevy::prelude::*;
 use crate::networking::{
-    events::{ReceiveEvent, SendEvent},
-    packets::{Packet, WorldTileDataRequest, WorldTileData}
+    id::ConnectionId,
+    events::SendEvent,
+    packets::{
+        Packet,
+        WorldTileData,
+        WorldTileDataRequest
+    }
 };
 use super::MeshData;
 
@@ -18,34 +23,30 @@ pub fn setup_world_mesh_data(mut state: ResMut<WorldTileDataState>) {
             std::fs::File::open("content/worlds/CoveWorldtest.bpmesh").expect("Failed to load 'content/worlds/CoveWorldtest.bpmesh'")
         )
     ).expect("Failed to deserialized 'content/worlds/CoveWorldtest.bpmesh'");
-    state.mesh_data = Some(mesh_data);
+    state.mesh_data = Some(Arc::new(mesh_data));
 }
 
 #[derive(Default)]
 pub struct WorldTileDataState {
-    pub event_reader: EventReader<ReceiveEvent>,
-    pub mesh_data: Option<MeshData>
+    pub event_reader: EventReader<(ConnectionId, WorldTileDataRequest)>,
+    pub mesh_data: Option<Arc<MeshData>>
 }
 
 /// Handle a request from the client for a world tile
 pub fn handle_world_tile_data_requests(
     mut state: ResMut<WorldTileDataState>,
     mut sender: ResMut<Events<SendEvent>>,
-    receiver: ResMut<Events<ReceiveEvent>>)
+    receiver: ResMut<Events<(ConnectionId, WorldTileDataRequest)>>)
 {
-    for evt in state.event_reader.iter(&receiver) {
-        if let ReceiveEvent::ReceivedPacket { data, connection, .. } = evt {
-            //todo(#46): Respect request coordinates (x, y lod)
-            if let Packet::WorldTileDataRequest(WorldTileDataRequest { x: _x, y: _y, lod: _lod }) = **data {
-                sender.send(
-                    SendEvent::TransferPacket {
-                        connection: *connection,
-                        data: Arc::new(Packet::WorldTileData(WorldTileData {
-                            mesh_data: state.mesh_data.as_ref().expect("Failed to get mesh_data from WorldTileDataState").clone()
-                        }))
-                    }
-                );
+    //todo(#46): Respect request coordinates (x, y lod)
+    for (conn, _) in state.event_reader.iter(&receiver) {
+        sender.send(
+            SendEvent::TransferPacket {
+                connection: *conn,
+                data: Packet::WorldTileData(WorldTileData {
+                    mesh_data: state.mesh_data.as_ref().expect("Failed to get mesh_data from WorldTileDataState").clone()
+                })
             }
-        }
+        );
     }
 }

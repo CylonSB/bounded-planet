@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::{sync::Arc, time::SystemTime};
 use serde::{Deserialize, Serialize};
 
 use crate::land::MeshData;
@@ -12,6 +12,7 @@ pub enum StreamType {
 }
 
 /// Enum of all packets in the network protocol
+// REMEMBER: After adding a new variant here, also go and add an event with the correct type in dispatch.rs
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Packet {
     AuthRequest(AuthRequest),
@@ -78,5 +79,5 @@ pub struct WorldTileDataRequest {
 /// World tile data packet, requested by the client
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WorldTileData {
-    pub mesh_data: MeshData
+    pub mesh_data: Arc<MeshData>
 }
