@@ -1,0 +1,12 @@
+[package]
+name = "bevy_egui"
+version = "0.1.0"
+authors = ["Cylon dummies"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = "0.2.1"
+egui = "0.2.0"
+tracing = "0.1.21"
