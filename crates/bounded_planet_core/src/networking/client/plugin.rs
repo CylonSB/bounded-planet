@@ -1,7 +1,15 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::SocketAddr,
+    sync::Arc
+};
 
 use thiserror::Error;
-use bevy::prelude::{AppBuilder, IntoQuerySystem, IntoThreadLocalSystem, Plugin};
+use bevy::prelude::{
+    AppBuilder,
+    IntoQuerySystem,
+    IntoThreadLocalSystem,
+    Plugin
+};
 use quinn::{
     ClientConfigBuilder,
     crypto::rustls::TlsSession,

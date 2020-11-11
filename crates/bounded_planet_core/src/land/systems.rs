@@ -1,6 +1,14 @@
 use std::sync::Arc;
 use bevy::prelude::*;
-use crate::networking::{id::ConnectionId, events::SendEvent, packets::{Packet, WorldTileData, WorldTileDataRequest}};
+use crate::networking::{
+    id::ConnectionId,
+    events::SendEvent,
+    packets::{
+        Packet,
+        WorldTileData,
+        WorldTileDataRequest
+    }
+};
 use super::MeshData;
 
 /// Loads the world mesh and stores it

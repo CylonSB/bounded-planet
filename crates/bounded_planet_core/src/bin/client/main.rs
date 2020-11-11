@@ -1,16 +1,39 @@
-use std::{fs, net::ToSocketAddrs, path::PathBuf};
+use std::{
+    fs,
+    net::ToSocketAddrs,
+    path::PathBuf
+};
 use structopt::StructOpt;
 use url::Url;
-use tracing::{Level, info};
+use tracing::{
+    Level,
+    info
+};
 use bevy::{
     input::{
         keyboard::ElementState as PressState,
-        mouse::{MouseButtonInput, MouseScrollUnit, MouseWheel},
+        mouse::{
+            MouseButtonInput,
+            MouseScrollUnit,
+            MouseWheel
+        },
     },
     prelude::*,
-    render::mesh::{Mesh, VertexAttribute}
+    render::mesh::{
+        Mesh,
+        VertexAttribute
+    }
 };
-use bounded_planet::{camera::*, networking::{components::Connection, events::*, id::ConnectionId, packets::*, systems::*}};
+use bounded_planet::{
+    camera::*,
+    networking::{
+        components::Connection,
+        events::*,
+        id::ConnectionId,
+        packets::*,
+        systems::*
+    }
+};
 
 
 // The thresholds for window edge.

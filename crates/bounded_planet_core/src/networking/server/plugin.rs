@@ -1,14 +1,30 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use thiserror::Error;
-use bevy::prelude::{AppBuilder, IntoThreadLocalSystem, Plugin};
-use quinn::{crypto::rustls::TlsSession, generic::Incoming};
+use bevy::prelude::{
+    AppBuilder,
+    IntoThreadLocalSystem,
+    Plugin
+};
+use quinn::{
+    crypto::rustls::TlsSession,
+    generic::Incoming
+};
 use bevy::prelude::IntoQuerySystem;
 use futures::StreamExt;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use tokio::sync::mpsc::{
+    unbounded_channel,
+    UnboundedSender
+};
 use tracing::info;
 
-use crate::networking::{events::{NetworkError, ReceiveEvent, SendEvent}, systems::{
+use crate::networking::{
+    events::{
+        NetworkError,
+        ReceiveEvent,
+        SendEvent
+    },
+    systems::{
         Connecting,
         NetworkConnections,
         SessionEventListenerState,
