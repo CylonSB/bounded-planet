@@ -5,13 +5,26 @@ use bevy::prelude::*;
 use structopt::StructOpt;
 use tracing::{Level, info};
 use bounded_planet::{
-    land::systems::{WorldTileDataState, handle_world_tile_data_requests, setup_world_mesh_data},
+    land::systems::{
+        WorldTileDataState,
+        handle_world_tile_data_requests,
+        setup_world_mesh_data
+    },
     networking::{
         components::Connection,
-        systems::{NetEventLoggerState, log_net_events},
-        events::{ReceiveEvent, SendEvent},
-        packets::{Packet, Ping, StreamType},
-        server::plugin::Network as NetworkPlugin
+        events::SendEvent,
+        id::ConnectionId,
+        packets::{
+            Packet,
+            Ping,
+            StreamType
+        },
+        server::plugin::Network as NetworkPlugin,
+        packets::Pong,
+        systems::{
+            NetEventLoggerState,
+            log_net_errors
+        }
     }
 };
 
@@ -70,7 +83,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     app.add_system(handle_world_tile_data_requests.system());
 
     app.init_resource::<NetEventLoggerState>();
-    app.add_system(log_net_events.system());
+    app.add_system(log_net_errors.system());
 
     // Run it forever
     app.run();
@@ -115,22 +128,18 @@ fn send_pings(mut sender: ResMut<Events<SendEvent>>, conn: &Connection) {
 
 #[derive(Default)]
 pub struct PongLoggerState {
-    pub event_reader: EventReader<ReceiveEvent>,
+    pub event_reader: EventReader<(ConnectionId, Pong)>,
 }
 
-fn log_pongs(mut state: ResMut<PongLoggerState>, receiver: ResMut<Events<ReceiveEvent>>) {
-    for evt in state.event_reader.iter(&receiver) {
-        if let ReceiveEvent::ReceivedPacket { data, .. } = evt {
-            if let Packet::Pong(pong) = data {
-                let time_sent = SystemTime::UNIX_EPOCH.checked_add(
-                    Duration::from_millis(pong.timestamp as u64)
-                ).expect("Overflowed SystemTime");
+fn log_pongs(mut state: ResMut<PongLoggerState>, receiver: ResMut<Events<(ConnectionId, Pong)>>) {
+    for (_, pong) in state.event_reader.iter(&receiver) {
+        let time_sent = SystemTime::UNIX_EPOCH.checked_add(
+            Duration::from_millis(pong.timestamp as u64)
+        ).expect("Overflowed SystemTime");
 
-                let time_now = SystemTime::now();
-                let latency = time_now.duration_since(time_sent);
+        let time_now = SystemTime::now();
+        let latency = time_now.duration_since(time_sent);
 
-                info!("Received Pong. Latency {:?}", latency);
-            }
-        }
+        info!("Received Pong. Latency {:?}", latency);
     }
 }

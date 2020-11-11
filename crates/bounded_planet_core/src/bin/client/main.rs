@@ -10,10 +10,7 @@ use bevy::{
     prelude::*,
     render::mesh::{Mesh, VertexAttribute}
 };
-use bounded_planet::{
-    camera::*,
-    networking::{events::*, packets::*, systems::*}
-};
+use bounded_planet::{camera::*, networking::{components::Connection, events::*, id::ConnectionId, packets::*, systems::*}};
 
 
 // The thresholds for window edge.
@@ -85,7 +82,7 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     app.add_system(respond_to_pings.system());
 
     app.init_resource::<NetEventLoggerState>();
-    app.add_system(log_net_events.system());
+    app.add_system(log_net_errors.system());
 
     app.init_resource::<MoveCam>();
     app.add_resource(Msaa { samples: 4 });
@@ -101,7 +98,6 @@ async fn run(options: Opt) -> Result<(), Box<dyn std::error::Error>> {
     app.init_resource::<TileReceivedState>();
     app.add_system(handle_tile_received.system());
 
-    app.init_resource::<RequestTileOnConnectedState>();
     app.add_system(request_tile_on_connected.system());
 
     // Run it forever
@@ -118,31 +114,27 @@ fn get_cert(cert_path: &PathBuf) -> Result<quinn::Certificate, Box<dyn std::erro
 
 #[derive(Default)]
 pub struct PingResponderState {
-    pub event_reader: EventReader<ReceiveEvent>,
+    pub event_reader: EventReader<(ConnectionId, Ping)>,
 }
 
 fn respond_to_pings(
     mut state: ResMut<PingResponderState>,
-    receiver: ResMut<Events<ReceiveEvent>>,
+    receiver: ResMut<Events<(ConnectionId, Ping)>>,
     mut sender: ResMut<Events<SendEvent>>,
 ) {
-    for evt in state.event_reader.iter(&receiver) {
-        if let ReceiveEvent::ReceivedPacket { ref connection, data } = evt {
-            if let Packet::Ping(ping) = data {
-                sender.send(SendEvent::SendPacket {
-                    connection: *connection,
-                    stream: StreamType::PingPong,
-                    data: Packet::Pong(Pong { timestamp: ping.timestamp })
-                });
-                info!("Received Ping, sending pong. {:?}", connection);
-            }
-        }
+    for (conn, ping) in state.event_reader.iter(&receiver) {
+        sender.send(SendEvent::SendPacket {
+            connection: *conn,
+            stream: StreamType::PingPong,
+            data: Packet::Pong(Pong { timestamp: ping.timestamp })
+        });
+        info!("Received Ping, sending pong. {:?}", conn);
     }
 }
 
 #[derive(Default)]
 pub struct TileReceivedState {
-    pub event_reader: EventReader<ReceiveEvent>,
+    pub event_reader: EventReader<(ConnectionId, WorldTileData)>,
 }
 
 /// When a tile is received from the server, we load it into the scene
@@ -150,66 +142,63 @@ fn handle_tile_received(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut state: ResMut<TileReceivedState>,
-    receiver: ResMut<Events<ReceiveEvent>>,
+    receiver: ResMut<Events<(ConnectionId, WorldTileData)>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut textures: ResMut<Assets<Texture>>,
     mut materials: ResMut<Assets<StandardMaterial>>
 ) {
-    for evt in state.event_reader.iter(&receiver) {
-        if let ReceiveEvent::ReceivedPacket { connection: ref _connection, data } = evt {
-            if let Packet::WorldTileData(WorldTileData { mesh_data }) = data {
-                info!("Loading tile received from server.");
-                let land_texture_top_handle = asset_server
-                    .load_sync(&mut textures, "content/textures/CoveWorldTop.png")
-                    .expect("Failed to load CoveWorldTop.png");
-                commands.spawn(PbrComponents {
-                    mesh: meshes.add(Mesh {
-                        primitive_topology: bevy::render::pipeline::PrimitiveTopology::TriangleList,
-                        attributes: vec![
-                            VertexAttribute::position(mesh_data.vertices.clone()),
-                            VertexAttribute::normal(mesh_data.normals.clone()),
-                            VertexAttribute::uv(mesh_data.uvs.clone()),
-                        ],
-                        indices: Some(mesh_data.indices.clone()),
-                    }),
-                    material: materials.add(StandardMaterial {
-                        albedo_texture: Some(land_texture_top_handle),
-                        shaded: true,
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                });
-                info!("Finished loading tile.");
-            }
-        }
+    for (_, data) in state.event_reader.iter(&receiver) {
+        info!("Loading tile received from server.");
+        let mesh_data = &data.mesh_data;
+        let land_texture_top_handle = asset_server
+            .load_sync(&mut textures, "content/textures/CoveWorldTop.png")
+            .expect("Failed to load CoveWorldTop.png");
+        commands.spawn(PbrComponents {
+            mesh: meshes.add(Mesh {
+                primitive_topology: bevy::render::pipeline::PrimitiveTopology::TriangleList,
+                attributes: vec![
+                    VertexAttribute::position(mesh_data.vertices.clone()),
+                    VertexAttribute::normal(mesh_data.normals.clone()),
+                    VertexAttribute::uv(mesh_data.uvs.clone()),
+                ],
+                indices: Some(mesh_data.indices.clone()),
+            }),
+            material: materials.add(StandardMaterial {
+                albedo_texture: Some(land_texture_top_handle),
+                shaded: true,
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        info!("Finished loading tile.");
     }
 }
 
-#[derive(Default)]
-struct RequestTileOnConnectedState {
-    pub event_reader: EventReader<ReceiveEvent>,
+// Mark a connection entity to indicate that the initial tile has been requested
+struct RequestedInitialTileMarker {
+
 }
 
 /// When the client connects to the server, request a tile
 fn request_tile_on_connected(
-    mut state: ResMut<RequestTileOnConnectedState>,
+    mut commands: Commands,
     mut sender: ResMut<Events<SendEvent>>,
-    receiver: ResMut<Events<ReceiveEvent>>
+    mut query: Query<Without<RequestedInitialTileMarker, (Entity, &Connection)>>
 ) {
-    for evt in state.event_reader.iter(&receiver) {
-        if let ReceiveEvent::Connected(connection, _) = evt {
-            info!("Requesting tile because connected to server...");
-            sender.send(SendEvent::SendPacket {
-                connection: *connection,
-                stream: StreamType::WorldTileData,
-                data: Packet::WorldTileDataRequest(WorldTileDataRequest {
-                    //todo(#46): Respect request coordinates (x, y lod)
-                    x: 0,
-                    y: 0,
-                    lod: 0
-                })
-            });
-        }
+    for (entity, connection) in &mut query.iter().iter() {
+        info!("Requesting tile because connected to server...");
+        sender.send(SendEvent::SendPacket {
+            connection: connection.id,
+            stream: StreamType::WorldTileData,
+            data: Packet::WorldTileDataRequest(WorldTileDataRequest {
+                //todo(#46): Respect request coordinates (x, y lod)
+                x: 0,
+                y: 0,
+                lod: 0
+            })
+        });
+
+        commands.insert_one(entity, RequestedInitialTileMarker { });
     }
 }
 

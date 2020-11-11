@@ -12,6 +12,7 @@ pub enum StreamType {
 }
 
 /// Enum of all packets in the network protocol
+// REMEMBER: After adding a new variant here, also go and add an event with the correct type in dispatch.rs
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Packet {
     AuthRequest(AuthRequest),

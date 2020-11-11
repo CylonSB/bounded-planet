@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use thiserror::Error;
-use bevy::prelude::{AppBuilder, Plugin, IntoQuerySystem};
+use bevy::prelude::{AppBuilder, IntoQuerySystem, IntoThreadLocalSystem, Plugin};
 use quinn::{
     ClientConfigBuilder,
     crypto::rustls::TlsSession,
@@ -9,13 +9,7 @@ use quinn::{
 use tokio::sync::mpsc::unbounded_channel;
 use url::Url;
 
-use crate::networking::{
-    crypto::SkipServerVerification,
-    events::{
-        ReceiveEvent,
-        SendEvent
-    },
-    systems::{
+use crate::networking::{crypto::SkipServerVerification, events::{NetworkError, SendEvent}, systems::{
         Connecting,
         NetworkConnections,
         SessionEventListenerState,
@@ -23,8 +17,7 @@ use crate::networking::{
         send_net_events_system,
         SEND_NET_EVENT_STAGE,
         RECEIVE_NET_EVENT_STAGE
-    }
-};
+    }};
 
 pub struct Network {
     pub addr: SocketAddr,
@@ -47,8 +40,9 @@ impl Plugin for Network {
         app.init_resource::<NetworkConnections>();
         app.add_resource::<NetworkConnections>(Default::default());
 
-        app.add_event::<ReceiveEvent>();
         app.add_event::<SendEvent>();
+        app.add_event::<NetworkError>();
+        crate::networking::dispatch::register_packets(app);
 
         // Start a task that waits for the connection to finish opening
         tokio::spawn(
@@ -59,7 +53,9 @@ impl Plugin for Network {
         );
 
         // Add a system that consumes all network events from an MPSC and publishes them as ECS events
-        app.add_system_to_stage(RECEIVE_NET_EVENT_STAGE, receive_net_events_system.system());
+        // This system must be "thread local" (i.e. running on the main thread) so that it can access
+        // all of the necessary events.
+        app.add_system_to_stage(RECEIVE_NET_EVENT_STAGE, receive_net_events_system.thread_local_system());
 
         // Add a system that consumes ECS events and forwards them to MPSCs which will eventually be sent over the network
         app.add_system_to_stage(SEND_NET_EVENT_STAGE, send_net_events_system.system());

@@ -1,9 +1,6 @@
 use std::sync::Arc;
 use bevy::prelude::*;
-use crate::networking::{
-    events::{ReceiveEvent, SendEvent},
-    packets::{Packet, WorldTileData}
-};
+use crate::networking::{id::ConnectionId, events::SendEvent, packets::{Packet, WorldTileData, WorldTileDataRequest}};
 use super::MeshData;
 
 /// Loads the world mesh and stores it
@@ -23,7 +20,7 @@ pub fn setup_world_mesh_data(mut state: ResMut<WorldTileDataState>) {
 
 #[derive(Default)]
 pub struct WorldTileDataState {
-    pub event_reader: EventReader<ReceiveEvent>,
+    pub event_reader: EventReader<(ConnectionId, WorldTileDataRequest)>,
     pub mesh_data: Option<Arc<MeshData>>
 }
 
@@ -31,21 +28,17 @@ pub struct WorldTileDataState {
 pub fn handle_world_tile_data_requests(
     mut state: ResMut<WorldTileDataState>,
     mut sender: ResMut<Events<SendEvent>>,
-    receiver: ResMut<Events<ReceiveEvent>>)
+    receiver: ResMut<Events<(ConnectionId, WorldTileDataRequest)>>)
 {
-    for evt in state.event_reader.iter(&receiver) {
-        if let ReceiveEvent::ReceivedPacket { data, connection, .. } = evt {
-            //todo(#46): Respect request coordinates (x, y lod)
-            if let Packet::WorldTileDataRequest(_) = *data {
-                sender.send(
-                    SendEvent::TransferPacket {
-                        connection: *connection,
-                        data: Packet::WorldTileData(WorldTileData {
-                            mesh_data: state.mesh_data.as_ref().expect("Failed to get mesh_data from WorldTileDataState").clone()
-                        })
-                    }
-                );
+    //todo(#46): Respect request coordinates (x, y lod)
+    for (conn, _) in state.event_reader.iter(&receiver) {
+        sender.send(
+            SendEvent::TransferPacket {
+                connection: *conn,
+                data: Packet::WorldTileData(WorldTileData {
+                    mesh_data: state.mesh_data.as_ref().expect("Failed to get mesh_data from WorldTileDataState").clone()
+                })
             }
-        }
+        );
     }
 }

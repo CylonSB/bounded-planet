@@ -4,6 +4,7 @@ pub mod systems;
 pub mod packets;
 pub mod serialization;
 pub mod events;
+pub mod dispatch;
 
 pub mod client;
 pub mod server;

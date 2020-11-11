@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bevy::prelude::{Commands, Entity, EventReader, Events, ResMut};
+use bevy::prelude::{Entity, EventReader, Events, RefMut, ResMut, Resources, World};
 use quinn::{IncomingUniStreams, crypto::rustls::TlsSession, generic::RecvStream};
 use tokio::{
     stream::StreamExt,
@@ -23,19 +23,12 @@ pub const RECEIVE_NET_EVENT_STAGE: &str = bevy::app::stage::FIRST;
 
 #[derive(Default)]
 pub struct NetEventLoggerState {
-    pub event_reader: EventReader<ReceiveEvent>,
+    pub event_reader: EventReader<NetworkError>,
 }
 
-pub fn log_net_events(mut state: ResMut<NetEventLoggerState>, receiver: ResMut<Events<ReceiveEvent>>) {
+pub fn log_net_errors(mut state: ResMut<NetEventLoggerState>, receiver: ResMut<Events<NetworkError>>) {
     for evt in state.event_reader.iter(&receiver) {
-        match evt {
-            ReceiveEvent::Connected(cid, _) => info!("New Connection: {:?}", cid),
-            ReceiveEvent::Disconnected(cid) => info!("Disconnected: {:?}", cid),
-            ReceiveEvent::SocketClosed => warn!("Socket Closed"),
-            ReceiveEvent::NetworkError(err) => error!("Network Error: {:?}", err),
-
-            _ => {}
-        }
+        error!("Network Error: {}", evt);
     }
 }
 
@@ -61,12 +54,19 @@ pub struct NetworkConnections {
 }
 
 /// Consume events from the network (sent through MPSCs) and publish them to the ECS
-pub fn receive_net_events_system(
-    mut commands: Commands,
-    mut session: ResMut<SessionEventListenerState>,
-    mut entities: ResMut<NetworkConnections>,
-    mut net_events: ResMut<Events<ReceiveEvent>>
-) {
+pub fn receive_net_events_system(world: &mut World, resources: &mut Resources)
+{
+    fn dispatch_packet<T: Send + Sync + 'static>(conn: ConnectionId, data: T, resources: &Resources) {
+        if let Some(ref mut events) = resources.get_mut::<Events::<(ConnectionId, T)>>() {
+            events.send((conn, data));
+        }
+    }
+
+    // Get some resources we need
+    let mut session: RefMut<SessionEventListenerState> = resources.get_mut().expect("SessionEventListenerState resource missing");
+    let mut entities: RefMut<NetworkConnections> = resources.get_mut().expect("NetworkConnections resource missing");
+    let mut errors: RefMut<Events<NetworkError>> = resources.get_mut().expect("Events<NetworkError> resource missing");
+
     // Break up `session` in a way that Rust is happy with
     let session: &mut SessionEventListenerState = &mut session;
     let SessionEventListenerState { event_receiver, .. } = session;
@@ -77,22 +77,20 @@ pub fn receive_net_events_system(
 
             // A new connection has opened, allocate an entry in the hashmap
             ReceiveEvent::Connected(id, ref packet_sender) => {
-
                 // Create an entity representing this connection
-                commands.spawn((
+                let e = world.spawn((
                     Connection { id },
                 ));
-                entities.connections.insert(id, commands.current_entity().expect("`spawn` did not create an entity"));
+                entities.connections.insert(id, e);
 
                 // Store the MPSC to send to this stream in the hashmap
                 session.stream_senders.insert(id, packet_sender.clone());
             }
 
             ReceiveEvent::Disconnected(id) => {
-
                 // Delete the entity representing this connection
                 if let Some(e) = entities.connections.remove(&id) {
-                    commands.despawn(e);
+                    let _ = world.despawn(e);
                 } else {
                     warn!("Failed to delete connection Entity for ConnectionId:{:?}", id);
                 }
@@ -103,21 +101,25 @@ pub fn receive_net_events_system(
 
             // When the socket closes throw away all session state
             ReceiveEvent::SocketClosed => {
-
                 // Delete all connection entities
                 for (_, e) in entities.connections.drain() {
-                    commands.despawn(e);
+                    let _ = world.despawn(e);
                 }
 
                 // drop all stream senders
                 session.stream_senders.clear();
             }
 
-            _ => {}
-        }
+            // Dispatch packet out to an event per packet type
+            ReceiveEvent::ReceivedPacket { connection, data } => {
+                dispatch_packet(connection, data, resources);
+            }
 
-        // Publish event for other systems to consume
-        net_events.send(event);
+            // Send network errors to an event and hope someone is listening
+            ReceiveEvent::NetworkError(n) => {
+                errors.send(n);
+            }
+        }
     }
 }
 

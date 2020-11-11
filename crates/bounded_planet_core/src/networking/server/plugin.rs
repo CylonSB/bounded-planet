@@ -1,19 +1,14 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use thiserror::Error;
-use bevy::prelude::{AppBuilder, Plugin};
+use bevy::prelude::{AppBuilder, IntoThreadLocalSystem, Plugin};
 use quinn::{crypto::rustls::TlsSession, generic::Incoming};
 use bevy::prelude::IntoQuerySystem;
 use futures::StreamExt;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use tracing::info;
 
-use crate::networking::{
-    events::{
-        ReceiveEvent,
-        SendEvent
-    },
-    systems::{
+use crate::networking::{events::{NetworkError, ReceiveEvent, SendEvent}, systems::{
         Connecting,
         NetworkConnections,
         SessionEventListenerState,
@@ -45,8 +40,9 @@ impl Plugin for Network {
 
         app.init_resource::<NetworkConnections>();
 
-        app.add_event::<ReceiveEvent>();
         app.add_event::<SendEvent>();
+        app.add_event::<NetworkError>();
+        crate::networking::dispatch::register_packets(app);
 
         // Create listen socket
         let listening = create_endpoint(
@@ -60,7 +56,9 @@ impl Plugin for Network {
         tokio::spawn(poll_new_connections(listening, send));
 
         // Add a system that consumes all network events from an MPSC and publishes them as ECS events
-        app.add_system_to_stage(RECEIVE_NET_EVENT_STAGE, receive_net_events_system.system());
+        // This system must be "thread local" (i.e. running on the main thread) so that it can access
+        // all of the necessary events.
+        app.add_system_to_stage(RECEIVE_NET_EVENT_STAGE, receive_net_events_system.thread_local_system());
 
         // Add a system that consumes ECS events and forwards them to MPSCs which will eventually be sent over the network
         app.add_system_to_stage(SEND_NET_EVENT_STAGE, send_net_events_system.system());
