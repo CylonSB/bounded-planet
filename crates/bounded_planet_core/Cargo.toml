@@ -31,3 +31,5 @@ quinn = "0.6.1"
 # Make sure to recheck this versaion number when updating quinn!
 rustls = { version = "0.17.0", features = [ "dangerous_configuration" ] }
 webpki = { version = "0.21.3" }
+
+bevy_egui = { path = "../bevy_egui" }
