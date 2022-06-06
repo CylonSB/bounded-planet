@@ -26,7 +26,7 @@ anyhow = "1.0.32"
 thiserror = "1.0.20"
 image = "0.23.10"
 
-quinn = "0.6.1"
+quinn = "0.6.2"
 # rustls isn't directly needed, it's a dependency of `quinn`. The `dangerous_configuration` feature is required to bypass security in the networking.
 # Make sure to recheck this versaion number when updating quinn!
 rustls = { version = "0.17.0", features = [ "dangerous_configuration" ] }
